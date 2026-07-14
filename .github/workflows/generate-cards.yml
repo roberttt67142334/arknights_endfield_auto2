@@ -43,6 +43,7 @@ jobs:
           cp dashboard.css _site/dashboard.css
           cp dashboard.js _site/dashboard.js
           cp config.js _site/config.js
+          cp -R assets _site/assets
           touch _site/.nojekyll
 
       - name: ⚙️ Configure GitHub Pages
