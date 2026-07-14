@@ -482,29 +482,80 @@ function stopAvatarManifestSync() {
 function renderAvatar(profile, account) {
   const image = $("#profileAvatarImage");
   const fallback = $("#profileAvatarFallback");
-  const avatarUrl =
-    profile?.avatar_url ||
-    getGeneratedAvatarUrl(account.slug) ||
-    "";
 
-  if (!avatarUrl) {
+  /*
+   * Prioritas sumber avatar:
+   * 1. Avatar lokal hasil GitHub Actions + endfield-cards
+   * 2. avatar_url dari Google Apps Script/API
+   * 3. Ikon operator generik
+   *
+   * avatar_url dari API kadang berisi URL yang tidak dapat dimuat langsung
+   * oleh browser. Karena itu avatar lokal tidak boleh ditimpa begitu saja.
+   */
+  const candidates = [
+    getGeneratedAvatarUrl(account.slug),
+    String(profile?.avatar_url || "").trim()
+  ].filter(Boolean);
+
+  let candidateIndex = 0;
+
+  const showFallback = () => {
+    image.onload = null;
+    image.onerror = null;
     image.hidden = true;
     fallback.hidden = false;
     image.removeAttribute("src");
+    image.removeAttribute("data-avatar-source");
+  };
+
+  const tryNextCandidate = () => {
+    if (candidateIndex >= candidates.length) {
+      showFallback();
+      return;
+    }
+
+    const nextUrl = candidates[candidateIndex];
+    candidateIndex += 1;
+
+    image.onload = () => {
+      fallback.hidden = true;
+      image.hidden = false;
+      image.setAttribute(
+        "data-avatar-source",
+        candidateIndex === 1
+          ? "endfield-cards"
+          : "game-api"
+      );
+    };
+
+    image.onerror = () => {
+      /*
+       * Jangan langsung sembunyikan gambar permanen.
+       * Coba sumber berikutnya terlebih dahulu.
+       */
+      tryNextCandidate();
+    };
+
+    image.hidden = true;
+    fallback.hidden = false;
+
+    /*
+     * Reset src terlebih dahulu agar browser menjalankan load/error
+     * lagi ketika URL atau hash avatar berubah.
+     */
+    image.removeAttribute("src");
+
+    requestAnimationFrame(() => {
+      image.src = nextUrl;
+    });
+  };
+
+  if (candidates.length === 0) {
+    showFallback();
     return;
   }
 
-  image.onload = () => {
-    fallback.hidden = true;
-    image.hidden = false;
-  };
-
-  image.onerror = () => {
-    image.hidden = true;
-    fallback.hidden = false;
-  };
-
-  image.src = avatarUrl;
+  tryNextCandidate();
 }
 
 function renderTask(prefix, task) {
@@ -828,6 +879,11 @@ function applyDashboardState(dashboardState, source) {
 
   renderAccountList();
   renderSelectedAccount();
+
+  /*
+   * Avatar lokal tetap dirender ulang setelah data profil GAS masuk,
+   * tetapi tidak lagi kalah prioritas dari avatar_url API yang rusak.
+   */
 
   const changed =
     previousSignature !== null &&
