@@ -7,7 +7,7 @@ window.ENDFIELD_CONFIG = Object.freeze({
    * cukup ganti nilai ini.
    */
   gasUrl:
-    "https://script.google.com/macros/s/AKfycbwSyyCgww2YcLSNR9hWHnUKjq2ZK21ghKCZWxjh6_hyVwNoPdGH6olmojlRcC79otC4IQ/exec",
+    "https://script.google.com/macros/s/AKfycbxh7xI9jQoYHNc07LANgmje2FBAGFsFbgjC6HhDT73CoQrKWMGNS5kma9n8YbL8hQUtfA/exec",
 
   /*
    * Browser memeriksa snapshot setiap 30 detik.
