@@ -266,7 +266,6 @@ function setAuthorized(authorized) {
 
   if (authorized) {
     sessionStorage.setItem(SESSION_KEY, "1");
-    resumeBackgroundVideo();
     startAutoSync();
   } else {
     sessionStorage.removeItem(SESSION_KEY);
@@ -656,6 +655,10 @@ function createDataSignature(dashboardState) {
 
     return {
       slug: fallback.slug,
+      display_name:
+        account.display_name ?? null,
+      server_name:
+        account.server_name ?? null,
       profile: {
         name: profile.name ?? null,
         uid: profile.uid ?? account.uid ?? null,
@@ -1081,25 +1084,94 @@ function showToast({
   setTimeout(remove, duration);
 }
 
-async function resumeBackgroundVideo() {
-  const video = $("#backgroundVideo");
-  if (!video) return;
+async function copyTextToClipboard(text) {
+  const value = String(text || "").trim();
 
-  video.style.display = "block";
-  video.style.visibility = "visible";
-  video.style.opacity = "0.1";
+  if (!value || value === "—") {
+    throw new Error("UID belum tersedia.");
+  }
+
+  if (
+    navigator.clipboard &&
+    window.isSecureContext
+  ) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  textarea.style.pointerEvents = "none";
+
+  document.body.appendChild(textarea);
+  textarea.select();
+
+  const copied = document.execCommand("copy");
+  textarea.remove();
+
+  if (!copied) {
+    throw new Error("Clipboard tidak tersedia.");
+  }
+}
+
+async function copyCurrentUid() {
+  const uidElement = $("#profileUid");
+  const uid = uidElement?.textContent?.trim() || "";
 
   try {
-    await video.play();
-  } catch (_) {
-    // Autoplay dapat menunggu interaksi pengguna.
+    await copyTextToClipboard(uid);
+
+    showToast({
+      type: "success",
+      title: "UID copied",
+      message: `UID ${uid} berhasil disalin.`,
+      duration: 2600
+    });
+  } catch (error) {
+    showToast({
+      type: "warning",
+      title: "UID belum dapat disalin",
+      message:
+        error?.message ||
+        "Data UID belum tersedia.",
+      duration: 3200
+    });
   }
+}
+
+function bindCopyUidInteraction() {
+  const uidElement = $("#profileUid");
+
+  if (!uidElement) {
+    return;
+  }
+
+  uidElement.addEventListener(
+    "click",
+    copyCurrentUid
+  );
+
+  uidElement.addEventListener(
+    "keydown",
+    event => {
+      if (
+        event.key === "Enter" ||
+        event.key === " "
+      ) {
+        event.preventDefault();
+        copyCurrentUid();
+      }
+    }
+  );
 }
 
 async function initialize() {
   renderAccountList();
   renderSelectedAccount();
-  resumeBackgroundVideo();
+  bindCopyUidInteraction();
 
   const authorized =
     sessionStorage.getItem(SESSION_KEY) === "1";
@@ -1117,8 +1189,6 @@ async function initialize() {
     "visibilitychange",
     () => {
       if (!document.hidden) {
-        resumeBackgroundVideo();
-
         if (
           sessionStorage.getItem(SESSION_KEY) === "1"
         ) {
@@ -1129,11 +1199,6 @@ async function initialize() {
         }
       }
     }
-  );
-
-  window.addEventListener(
-    "focus",
-    resumeBackgroundVideo
   );
 
   window.addEventListener(
