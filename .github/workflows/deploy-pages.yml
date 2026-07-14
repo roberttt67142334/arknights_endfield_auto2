@@ -1,4 +1,4 @@
-name: 🌐 Deploy Endfield GAS Dashboard
+name: 🌐 Deploy Endfield Dashboard + Refresh Avatars
 
 on:
   push:
@@ -9,9 +9,16 @@ on:
       - "dashboard.css"
       - "dashboard.js"
       - "config.js"
+      - "requirements.txt"
+      - "avatar-manifest.json"
+      - "scripts/generate_profile_avatars.py"
       - ".github/workflows/deploy-pages.yml"
 
   workflow_dispatch:
+
+  # GitHub Actions scheduled workflows have a practical minimum of 5 minutes.
+  schedule:
+    - cron: "*/5 * * * *"
 
 permissions:
   contents: read
@@ -19,12 +26,13 @@ permissions:
   id-token: write
 
 concurrency:
-  group: endfield-gas-pages
-  cancel-in-progress: false
+  group: endfield-avatar-pages
+  cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     environment:
       name: github-pages
@@ -34,15 +42,55 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🏗️ Build static site
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: "requirements.txt"
+
+      - name: ♻️ Restore previous avatars
+        uses: actions/cache@v4
+        with:
+          path: |
+            assets/avatars
+            avatar-manifest.json
+          key: endfield-avatars-${{ github.run_id }}
+          restore-keys: |
+            endfield-avatars-
+
+      - name: 📦 Install avatar generator
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: 🖼️ Refresh profile avatars
+        run: |
+          python scripts/generate_profile_avatars.py
+
+          echo "Avatar manifest:"
+          cat avatar-manifest.json
+
+          echo "Avatar files:"
+          find assets/avatars -maxdepth 1 -type f -print
+
+          python -m json.tool avatar-manifest.json > /dev/null
+
+      - name: 🏗️ Build GitHub Pages
         run: |
           rm -rf _site
-          mkdir -p _site
+          mkdir -p _site/assets/avatars
 
           cp index.html _site/index.html
           cp dashboard.css _site/dashboard.css
           cp dashboard.js _site/dashboard.js
           cp config.js _site/config.js
+          cp avatar-manifest.json _site/avatar-manifest.json
+
+          if compgen -G "assets/avatars/*.png" > /dev/null; then
+            cp assets/avatars/*.png _site/assets/avatars/
+          fi
+
           touch _site/.nojekyll
 
       - name: ⚙️ Configure GitHub Pages
