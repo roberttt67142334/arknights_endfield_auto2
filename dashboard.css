@@ -297,6 +297,31 @@ button {
   height: 7px;
   background: var(--green);
   box-shadow: 0 0 10px rgba(63, 220, 134, 0.65);
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.online-dot.data-update {
+  background: #26a9ff;
+  box-shadow:
+    0 0 8px rgba(38, 169, 255, 0.95),
+    0 0 20px rgba(38, 169, 255, 0.75);
+  animation: network-data-pulse 0.55s ease-in-out infinite;
+}
+
+@keyframes network-data-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.82);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.45);
+  }
 }
 
 .mobile-menu-button {
@@ -405,9 +430,7 @@ button {
 }
 
 #toolbarInfo {
-  margin-left: 6px;
-  color: var(--muted);
-  font-size: 9px;
+  display: none !important;
 }
 
 .overview-grid {
@@ -591,8 +614,17 @@ button {
 }
 
 .stamina-icon {
+  overflow: hidden;
+  padding: 5px;
   color: var(--yellow);
   background: rgba(242, 223, 0, 0.08);
+}
+
+.stamina-icon img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
 }
 
 .activity-icon {
