@@ -7,10 +7,10 @@
   --text: #f0f0ee;
   --muted: #92959b;
   --muted-2: #5a5e65;
-  --yellow: #f2df00;
+  --yellow: #ff2b3f;
   --cyan: #00cde7;
   --green: #3fdc86;
-  --red: #ff5c66;
+  --red: #ff7b86;
   --blue: #3d9cff;
   --sidebar-width: 268px;
   --topbar-height: 64px;
@@ -594,7 +594,7 @@ body::before {
 
 .action-button.primary:hover:not(:disabled) {
   color: #080808;
-  background: #fff500;
+  background: #ff3b4f;
 }
 
 .action-button:disabled,
@@ -696,6 +696,8 @@ body::before {
   gap: 15px;
   align-items: center;
   margin-bottom: 19px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .profile-avatar {
@@ -705,7 +707,7 @@ body::before {
   display: grid;
   place-items: center;
   overflow: hidden;
-  border: 1px solid rgba(242, 223, 0, 0.55);
+  border: 1px solid rgba(255, 43, 63, 0.58);
   background: #25272a;
   color: var(--yellow);
   font-family: "Space Grotesk", sans-serif;
@@ -734,7 +736,7 @@ body::before {
   stroke-width: 1.45;
   stroke-linecap: square;
   stroke-linejoin: miter;
-  filter: drop-shadow(0 0 8px rgba(242, 223, 0, 0.24));
+  filter: drop-shadow(0 0 8px rgba(255, 43, 63, 0.26));
 }
 
 .profile-identity h3 {
@@ -756,10 +758,10 @@ body::before {
 
 .identity-row {
   min-height: 35px;
-  display: flex;
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
-  gap: 15px;
+  gap: 14px;
   border-bottom: 1px solid var(--line-soft);
   color: var(--muted);
   font-size: 10px;
@@ -768,13 +770,15 @@ body::before {
 .identity-row strong {
   color: var(--text);
   font-weight: 600;
-  text-align: right;
+  text-align: left;
+  justify-self: start;
 }
 
 .copyable-value {
   position: relative;
   display: inline-flex;
   align-items: center;
+  justify-self: start;
   gap: 6px;
   cursor: copy;
   user-select: text;
@@ -858,7 +862,7 @@ body::before {
   overflow: hidden;
   padding: 5px;
   color: var(--yellow);
-  background: rgba(242, 223, 0, 0.08);
+  background: rgba(255, 43, 63, 0.10);
 }
 
 .stamina-icon img {
@@ -927,8 +931,8 @@ body::before {
   background:
     repeating-linear-gradient(
       135deg,
-      #ffe500 0 4px,
-      #e1c900 4px 8px
+      #ff5164 0 4px,
+      #c9152c 4px 8px
     );
 }
 
@@ -1250,7 +1254,7 @@ body::before {
 
 .pin-input:focus {
   border-color: var(--yellow);
-  box-shadow: 0 0 22px rgba(242, 223, 0, 0.08);
+  box-shadow: 0 0 22px rgba(255, 43, 63, 0.10);
 }
 
 .login-button {
