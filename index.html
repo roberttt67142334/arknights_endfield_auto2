@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap"
         rel="stylesheet">
-  <link rel="stylesheet" href="./dashboard.css?v=20260714-responsive5">
+  <link rel="stylesheet" href="./dashboard.css?v=20260714-responsive6">
 </head>
 
 <body>
@@ -135,7 +135,16 @@
                 <div class="profile-identity">
                   <div id="profileAvatar"
                        class="profile-avatar">
-                    <span id="profileAvatarFallback">?</span>
+                    <span
+                      id="profileAvatarFallback"
+                      class="profile-avatar-fallback"
+                      aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <circle cx="12" cy="8" r="4"></circle>
+                      <path d="M4.5 21c.8-5 3.2-7.5 7.5-7.5S18.7 16 19.5 21"></path>
+                      <path d="M7.5 5.8 5.8 4.2M16.5 5.8l1.7-1.6"></path>
+                    </svg>
+                  </span>
                     <img id="profileAvatarImage"
                          alt="Avatar akun"
                          hidden>
@@ -373,7 +382,7 @@
     </form>
   </div>
 
-  <script src="./config.js?v=20260714-responsive5"></script>
-  <script src="./dashboard.js?v=20260714-responsive5"></script>
+  <script src="./config.js?v=20260714-responsive6"></script>
+  <script src="./dashboard.js?v=20260714-responsive6"></script>
 </body>
 </html>
