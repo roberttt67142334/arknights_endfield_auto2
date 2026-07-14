@@ -950,7 +950,7 @@ async function syncState({
         type: "success",
         title: "Manual refresh selesai",
         message:
-          // "Level, Operator, Exploration, Stamina, dan Activity sudah diperiksa."
+          "Level, Operator, Exploration, Stamina, dan Activity sudah diperiksa."
       });
     }
   } catch (error) {
