@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#050607">
+  <title>Endfield Protocol Dashboard</title>
+  <link rel="icon" href="https://cdn2.cdnstep.com/uZonBNFhuQtCPjNRKuWd/cover-2.thumb256.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./dashboard.css">
+</head>
+<body>
+  <div class="background-media" aria-hidden="true">
+    <video id="backgroundVideo" autoplay muted loop playsinline>
+      <source src="https://raw.githubusercontent.com/roberttt67142334/Assets/refs/heads/main/01.1e0eb1_2.mp4" type="video/mp4">
+    </video>
+  </div>
+
+  <div class="app-shell">
+    <aside id="sidebar" class="sidebar">
+      <div class="brand">
+        <div class="brand-mark"><span>EF</span></div>
+        <span>Protocol Terminal</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-label">Control Panel</div>
+        <button class="nav-button active" data-view="dashboard"><span class="nav-icon">▦</span>Dashboard</button>
+        <button class="nav-button" data-view="profiles"><span class="nav-icon">◉</span>Operator Profiles</button>
+
+        <div class="nav-label">Registered Accounts</div>
+        <div id="accountMiniList" class="account-mini-list"></div>
+
+        <div class="nav-label">Actions</div>
+        <button id="sidebarCheckinButton" class="nav-button"><span class="nav-icon">✓</span>Check-in</button>
+        <button id="sidebarRefreshButton" class="nav-button"><span class="nav-icon">↻</span>Refresh Data</button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button id="logoutButton" class="logout-button">⇱ Logout</button>
+      </div>
+    </aside>
+
+    <section class="main-shell">
+      <header class="topbar">
+        <div class="topbar-title">
+          <button id="mobileMenuButton" class="mobile-menu-button" aria-label="Buka menu">☰</button>
+          <span class="topbar-square">▣</span>
+          <span id="topbarViewName">Control Panel / Dashboard</span>
+        </div>
+        <div class="topbar-status"><span class="online-dot"></span>Global Network Online</div>
+      </header>
+
+      <main class="main-content">
+        <div class="content-width">
+          <section id="dashboardView">
+            <div class="page-heading">
+              <div class="page-title-row">
+                <h1>Data Overview</h1>
+                <span class="badge">Global</span>
+                <span id="cacheBadge" class="badge yellow">Awaiting sync</span>
+              </div>
+              <p>Endfield operator monitoring terminal</p>
+            </div>
+
+            <div class="dashboard-toolbar">
+              <button id="checkinButton" class="action-button primary">▣ Check-in</button>
+              <button id="refreshButton" class="action-button">↻ Refresh</button>
+              <span id="toolbarInfo">Auto-refresh card setiap 10 detik.</span>
+            </div>
+
+            <div class="overview-grid">
+              <article class="panel user-panel">
+                <header class="panel-header">
+                  <div><h2>User Profile</h2><small>Selected operator account</small></div>
+                  <span>01</span>
+                </header>
+                <div class="user-profile-body">
+                  <div class="profile-identity">
+                    <div id="profileAvatar" class="profile-avatar">M</div>
+                    <div><h3 id="profileName">Muzaka</h3><p id="profileLevel">Authority Lv.60</p></div>
+                  </div>
+                  <div class="detail-list">
+                    <div><span>UID</span><strong id="profileUid">4468761606</strong></div>
+                    <div><span>Server</span><strong id="profileServer">Asia</strong></div>
+                    <div><span>Profile Card</span><strong id="profileCardStatus">Waiting</strong></div>
+                    <div><span>Live Stats</span><strong id="liveCardStatus">Waiting</strong></div>
+                  </div>
+                  <div class="profile-stats">
+                    <div><small>Account</small><strong id="accountOrdinal">01</strong></div>
+                    <div><small>Level</small><strong id="accountLevel">60</strong></div>
+                    <div><small>Sync</small><strong id="syncStateShort">—</strong></div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="panel profile-panel">
+                <header class="panel-header">
+                  <div><h2>Profile Card</h2><small>Authority and operator showcase</small></div>
+                  <span>02</span>
+                </header>
+                <div class="image-panel-body">
+                  <div class="image-frame profile-image-frame">
+                    <div id="profilePlaceholder" class="image-placeholder loading">Loading Profile Card...</div>
+                    <img id="profileCardImage" class="card-image" alt="Endfield Profile Card">
+                  </div>
+                </div>
+              </article>
+
+              <article class="panel live-panel">
+                <header class="panel-header">
+                  <div><h2>Live Stats</h2><small>Realtime account resources</small></div>
+                  <span>03</span>
+                </header>
+                <div class="live-body">
+                  <div class="image-frame live-image-frame">
+                    <div id="livePlaceholder" class="image-placeholder loading">Loading Live Stats Card...</div>
+                    <img id="liveCardImage" class="card-image" alt="Endfield Live Stats Card">
+                  </div>
+                  <div class="sync-card">
+                    <div><span>Selected account</span><strong id="syncSelectedAccount">Muzaka</strong></div>
+                    <div><span>Last generated</span><strong id="lastGeneratedAt">—</strong></div>
+                    <div><span>Browser refresh</span><strong id="lastBrowserRefresh">—</strong></div>
+                    <div><span>Service state</span><strong class="account-health"><i id="serviceHealthDot"></i><b id="serviceHealthText">Waiting</b></strong></div>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section id="profilesView" hidden>
+            <div class="page-heading">
+              <div class="page-title-row"><h1>Operator Profiles</h1><span class="badge">3 Accounts</span></div>
+              <p>Full profile and live statistics database</p>
+            </div>
+            <div class="dashboard-toolbar">
+              <button id="profilesCheckinButton" class="action-button primary">▣ Check-in</button>
+              <button id="profilesRefreshButton" class="action-button">↻ Refresh All Cards</button>
+            </div>
+            <div id="profilesViewGrid" class="profiles-view-grid"></div>
+          </section>
+        </div>
+      </main>
+    </section>
+  </div>
+
+  <div id="toastRegion" class="toast-region" aria-live="polite"></div>
+
+  <div id="loginLayer" class="login-layer">
+    <form id="loginForm" class="login-card" autocomplete="off">
+      <div class="login-kicker">SECURE PROTOCOL // SIX-DIGIT PIN</div>
+      <h2>Operator Database</h2>
+      <p>Masukkan PIN 6 digit untuk membuka dashboard privat Endfield.</p>
+      <input id="pinInput" class="pin-input" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" required>
+      <button id="loginButton" class="login-button" type="submit">AUTHORIZE SESSION</button>
+      <div id="loginMessage" class="login-message">STATUS: AWAITING AUTHORIZATION</div>
+    </form>
+  </div>
+
+  <script src="./dashboard.js"></script>
+</body>
+</html>
