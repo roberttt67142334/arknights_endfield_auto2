@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap"
         rel="stylesheet">
-  <link rel="stylesheet" href="./dashboard.css?v=20260714-gas4">
+  <link rel="stylesheet" href="./dashboard.css?v=20260714-theme4">
 </head>
 
 <body>
@@ -28,8 +28,16 @@
   <div class="app-shell">
     <aside id="sidebar" class="sidebar">
       <div class="brand">
-        <div class="brand-mark"><span>EF</span></div>
-        <span>Protocol Terminal</span>
+        <div class="brand-logo">
+          <img
+            src="https://raw.githubusercontent.com/Yue-plus/endfield_icons/main/svg/endfield-industries.svg"
+            alt="Endfield Industries">
+        </div>
+
+        <div class="brand-copy">
+          <span class="brand-title">Endfield // Protocol</span>
+          <span class="brand-beta">BETA</span>
+        </div>
       </div>
 
       <nav class="sidebar-nav">
@@ -46,7 +54,12 @@
         <div class="nav-label">Actions</div>
 
         <button id="sidebarCheckinButton" class="nav-button" type="button">
-          <span class="nav-icon">✓</span>
+          <span class="nav-icon nav-svg-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 2v3M17 2v3M3.5 9h17M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/>
+                <path d="m8 15 2.2 2.2L16.5 11"/>
+              </svg>
+          </span>
           <span>Check-in</span>
         </button>
 
@@ -95,7 +108,12 @@
             <button id="checkinButton"
                     class="action-button primary"
                     type="button">
-              <span>▣</span>
+              <span class="button-svg-icon">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 2v3M17 2v3M3.5 9h17M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/>
+                <path d="m8 15 2.2 2.2L16.5 11"/>
+              </svg>
+              </span>
               <span>Check-in</span>
             </button>
 
@@ -131,14 +149,21 @@
                   </div>
 
                   <div>
-                    <h3 id="profileName">Loading...</h3>
+                    <h3 id="profileName">—</h3>
                     <p id="profileLevelLabel">Lv.—</p>
                   </div>
                 </div>
 
-                <div class="identity-row">
-                  <span>UID</span>
-                  <strong id="profileUid">—</strong>
+                <div class="identity-list">
+                  <div class="identity-row">
+                    <span>UID</span>
+                    <strong id="profileUid">—</strong>
+                  </div>
+
+                  <div class="identity-row">
+                    <span>Server</span>
+                    <strong id="profileServer">—</strong>
+                  </div>
                 </div>
 
                 <div class="profile-stats">
@@ -156,11 +181,6 @@
                     <span>Exploration Level</span>
                     <strong id="explorationLevel">—</strong>
                   </div>
-                </div>
-
-                <div class="bound-row">
-                  <span>Bound accounts</span>
-                  <strong>1</strong>
                 </div>
               </div>
             </article>
@@ -289,7 +309,7 @@
 
             <div class="status-body">
               <div class="status-item">
-                <span>Selected account</span>
+                <span>Username</span>
                 <strong id="selectedAccountStatus">—</strong>
               </div>
               <div class="status-item">
@@ -354,7 +374,7 @@
     </form>
   </div>
 
-  <script src="./config.js?v=20260714-gas4"></script>
-  <script src="./dashboard.js?v=20260714-gas4"></script>
+  <script src="./config.js?v=20260714-theme4"></script>
+  <script src="./dashboard.js?v=20260714-theme4"></script>
 </body>
 </html>
