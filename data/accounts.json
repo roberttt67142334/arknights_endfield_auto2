@@ -1,0 +1,71 @@
+{
+  "updated_at": null,
+  "accounts": {
+    "muzaka": {
+      "slug": "muzaka",
+      "display_name": "Muzaka",
+      "uid": "4468761606",
+      "server_name": "Asia",
+      "profile": {
+        "uid": "4468761606",
+        "name": "Muzaka",
+        "avatar_url": "",
+        "level": 60,
+        "exploration_level": null,
+        "operator_count": null
+      },
+      "live": null,
+      "profile_available": false,
+      "live_available": false,
+      "profile_stale": true,
+      "live_stale": false,
+      "errors": [
+        "Menunggu sinkronisasi pertama dari GitHub Actions."
+      ]
+    },
+    "orion": {
+      "slug": "orion",
+      "display_name": "Orion",
+      "uid": "4896434342",
+      "server_name": "Asia",
+      "profile": {
+        "uid": "4896434342",
+        "name": "Orion",
+        "avatar_url": "",
+        "level": 57,
+        "exploration_level": null,
+        "operator_count": null
+      },
+      "live": null,
+      "profile_available": false,
+      "live_available": false,
+      "profile_stale": true,
+      "live_stale": false,
+      "errors": [
+        "Menunggu sinkronisasi pertama dari GitHub Actions."
+      ]
+    },
+    "naskara": {
+      "slug": "naskara",
+      "display_name": "Naskara",
+      "uid": "4367542843",
+      "server_name": "Asia",
+      "profile": {
+        "uid": "4367542843",
+        "name": "Naskara",
+        "avatar_url": "",
+        "level": 42,
+        "exploration_level": null,
+        "operator_count": null
+      },
+      "live": null,
+      "profile_available": false,
+      "live_available": false,
+      "profile_stale": true,
+      "live_stale": false,
+      "errors": [
+        "Menunggu sinkronisasi pertama dari GitHub Actions."
+      ]
+    }
+  }
+}
