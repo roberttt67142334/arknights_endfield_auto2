@@ -36,6 +36,12 @@ const FALLBACK_ACCOUNTS = [
   }
 ];
 
+const LOCAL_AVATARS = Object.freeze({
+  muzaka: "./assets/avatars/muzaka.png?v=1",
+  orion: "./assets/avatars/orion.png?v=1",
+  naskara: "./assets/avatars/naskara.png?v=1"
+});
+
 const state = {
   selectedSlug:
     localStorage.getItem(SELECTED_ACCOUNT_KEY) ||
@@ -45,7 +51,9 @@ const state = {
   countdownTimer: null,
   requestInProgress: false,
   checkingIn: false,
-  lastRevision: null
+  lastRevision: null,
+  lastDataSignature: null,
+  networkPulseTimer: null
 };
 
 const $ = selector => document.querySelector(selector);
@@ -405,7 +413,10 @@ function renderAccountList() {
 function renderAvatar(profile, account) {
   const image = $("#profileAvatarImage");
   const fallback = $("#profileAvatarFallback");
-  const avatarUrl = profile?.avatar_url || "";
+  const avatarUrl =
+    profile?.avatar_url ||
+    LOCAL_AVATARS[account.slug] ||
+    "";
 
   const name =
     profile?.name ||
@@ -661,14 +672,91 @@ function renderSelectedAccount() {
   renderAccountList();
 }
 
+function createDataSignature(dashboardState) {
+  const accounts = dashboardState?.accounts || {};
+
+  const comparable = FALLBACK_ACCOUNTS.map(fallback => {
+    const account = accounts[fallback.slug] || {};
+    const profile = account.profile || {};
+    const live = account.live || {};
+    const sanity = live.sanity || {};
+    const daily = live.daily_activity || {};
+    const weekly = live.weekly_routine || {};
+    const protocol = live.protocol_pass || {};
+
+    return {
+      slug: fallback.slug,
+      profile: {
+        name: profile.name ?? null,
+        uid: profile.uid ?? account.uid ?? null,
+        level: profile.level ?? null,
+        exploration_level:
+          profile.exploration_level ?? null,
+        operator_count:
+          profile.operator_count ?? null,
+        avatar_url:
+          profile.avatar_url ?? null
+      },
+      live: {
+        sanity: {
+          current: sanity.current ?? null,
+          max: sanity.max ?? null,
+          full_recover_at:
+            sanity.full_recover_at ?? null
+        },
+        daily_activity: {
+          current: daily.current ?? null,
+          max: daily.max ?? null
+        },
+        weekly_routine: {
+          current: weekly.current ?? null,
+          max: weekly.max ?? null
+        },
+        protocol_pass: {
+          current: protocol.current ?? null,
+          max: protocol.max ?? null
+        }
+      }
+    };
+  });
+
+  return JSON.stringify(comparable);
+}
+
+function pulseNetworkUpdate() {
+  const indicator = $("#networkIndicator");
+
+  if (!indicator) {
+    return;
+  }
+
+  indicator.classList.add("data-update");
+
+  if (state.networkPulseTimer !== null) {
+    clearTimeout(state.networkPulseTimer);
+  }
+
+  state.networkPulseTimer = setTimeout(() => {
+    indicator.classList.remove("data-update");
+    state.networkPulseTimer = null;
+  }, 4200);
+}
+
 function applyDashboardState(dashboardState, source) {
-  const previousRevision = state.lastRevision;
+  const nextSignature =
+    createDataSignature(dashboardState);
+
+  const previousSignature =
+    state.lastDataSignature;
 
   state.data = dashboardState;
   state.lastRevision =
     dashboardState.revision ??
     dashboardState.updated_at ??
     null;
+
+  state.lastDataSignature =
+    nextSignature;
 
   $("#browserRefreshAt").textContent =
     browserTimeWib();
@@ -681,10 +769,15 @@ function applyDashboardState(dashboardState, source) {
   renderAccountList();
   renderSelectedAccount();
 
-  return (
-    previousRevision !== null &&
-    state.lastRevision !== previousRevision
-  );
+  const changed =
+    previousSignature !== null &&
+    nextSignature !== previousSignature;
+
+  if (changed) {
+    pulseNetworkUpdate();
+  }
+
+  return changed;
 }
 
 function setRefreshButtonsDisabled(disabled) {
@@ -711,8 +804,6 @@ async function syncState({
 
   if (manual) {
     setRefreshButtonsDisabled(true);
-    $("#toolbarInfo").textContent =
-      "Meminta data terbaru langsung dari SKPORT...";
   }
 
   try {
@@ -731,14 +822,6 @@ async function syncState({
         title: "Manual refresh selesai",
         message:
           "Level, Operator, Exploration, Stamina, dan Activity sudah diperiksa."
-      });
-    } else if (changed) {
-      showToast({
-        type: "info",
-        title: "Game data updated",
-        message:
-          "Perubahan data akun terdeteksi dan dashboard sudah diperbarui.",
-        duration: 4000
       });
     }
   } catch (error) {
@@ -762,10 +845,6 @@ async function syncState({
 
     if (manual) {
       setRefreshButtonsDisabled(false);
-      $("#toolbarInfo").textContent =
-        `Sinkron otomatis setiap ${
-          Math.round(AUTO_SYNC_MS / 1000)
-        } detik • Tombol Refresh tetap manual.`;
     }
   }
 }
@@ -1051,11 +1130,6 @@ async function initialize() {
   renderAccountList();
   renderSelectedAccount();
   resumeBackgroundVideo();
-
-  $("#toolbarInfo").textContent =
-    `Sinkron otomatis setiap ${
-      Math.round(AUTO_SYNC_MS / 1000)
-    } detik • Tombol Refresh tetap manual.`;
 
   const authorized =
     sessionStorage.getItem(SESSION_KEY) === "1";
