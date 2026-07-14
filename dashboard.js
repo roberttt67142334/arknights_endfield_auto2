@@ -33,7 +33,8 @@ const state = {
   checkingIn: false,
   lastRevision: null,
   lastDataSignature: null,
-  networkPulseTimer: null
+  networkPulseTimer: null,
+  copyLabelTimer: null
 };
 
 const $ = selector => document.querySelector(selector);
@@ -392,13 +393,6 @@ function renderAvatar(profile, account) {
   const image = $("#profileAvatarImage");
   const fallback = $("#profileAvatarFallback");
   const avatarUrl = profile?.avatar_url || "";
-
-  const name =
-    profile?.name ||
-    "—";
-
-  fallback.textContent =
-    name.slice(0, 1).toUpperCase();
 
   if (!avatarUrl) {
     image.hidden = true;
@@ -1124,11 +1118,22 @@ async function copyCurrentUid() {
   try {
     await copyTextToClipboard(uid);
 
+    uidElement.classList.add("copied");
+
+    if (state.copyLabelTimer !== null) {
+      clearTimeout(state.copyLabelTimer);
+    }
+
+    state.copyLabelTimer = setTimeout(() => {
+      uidElement.classList.remove("copied");
+      state.copyLabelTimer = null;
+    }, 5000);
+
     showToast({
       type: "success",
       title: "UID copied",
       message: `UID ${uid} berhasil disalin.`,
-      duration: 2600
+      duration: 2200
     });
   } catch (error) {
     showToast({
