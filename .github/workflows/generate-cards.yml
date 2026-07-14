@@ -92,6 +92,13 @@ jobs:
           ENDFIELD_TOKEN_NASKARA: ${{ secrets.ENDFIELD_TOKEN_NASKARA }}
         run: python scripts/generate_data.py
 
+      - name: ✅ Validate dashboard JSON
+        run: |
+          test -f data/accounts.json
+          python -m json.tool data/accounts.json > /dev/null
+          echo "data/accounts.json valid:"
+          ls -lh data/accounts.json
+
       - name: 🏗️ Build GitHub Pages directory
         run: |
           rm -rf _site
