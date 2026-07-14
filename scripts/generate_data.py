@@ -471,10 +471,12 @@ async def main() -> int:
 
     if successful_sources == 0:
         print(
-            "Tidak ada sumber data yang tersedia."
+            "PERINGATAN: semua sumber data gagal. "
+            "JSON fallback tetap dibuat agar dashboard tidak kosong."
         )
-        return 1
 
+    # Jangan hentikan deployment. data/accounts.json tetap valid dan
+    # menyimpan error/fallback untuk ditampilkan di dashboard.
     return 0
 
 
