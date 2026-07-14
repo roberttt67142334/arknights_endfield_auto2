@@ -13,17 +13,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap"
         rel="stylesheet">
-  <link rel="stylesheet" href="./dashboard.css?v=20260714-theme4">
+  <link rel="stylesheet" href="./dashboard.css?v=20260714-responsive5">
 </head>
 
 <body>
-  <div class="background-media" aria-hidden="true">
-    <video id="backgroundVideo" autoplay muted loop playsinline>
-      <source
-        src="https://raw.githubusercontent.com/roberttt67142334/Assets/refs/heads/main/01.1e0eb1_2.mp4"
-        type="video/mp4">
-    </video>
-  </div>
+  <div class="background-media" aria-hidden="true"></div>
 
   <div class="app-shell">
     <aside id="sidebar" class="sidebar">
@@ -83,7 +77,6 @@
                   class="mobile-menu-button"
                   type="button"
                   aria-label="Buka menu">☰</button>
-          <span class="topbar-square">▣</span>
           <span>Control Panel / Dashboard</span>
         </div>
 
@@ -157,7 +150,13 @@
                 <div class="identity-list">
                   <div class="identity-row">
                     <span>UID</span>
-                    <strong id="profileUid">—</strong>
+                    <strong
+                      id="profileUid"
+                      class="copyable-value"
+                      role="button"
+                      tabindex="0"
+                      aria-label="Salin UID akun"
+                      title="Klik untuk menyalin UID">—</strong>
                   </div>
 
                   <div class="identity-row">
@@ -374,7 +373,7 @@
     </form>
   </div>
 
-  <script src="./config.js?v=20260714-theme4"></script>
-  <script src="./dashboard.js?v=20260714-theme4"></script>
+  <script src="./config.js?v=20260714-responsive5"></script>
+  <script src="./dashboard.js?v=20260714-responsive5"></script>
 </body>
 </html>
