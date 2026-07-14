@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: endfield-live-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: ENDFIELD_TOKEN_MUZAKA
+        sync: false
+      - key: ENDFIELD_TOKEN_ORION
+        sync: false
+      - key: ENDFIELD_TOKEN_NASKARA
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: https://roberttt67142334.github.io
+      - key: POLL_SECONDS
+        value: "30"
+      - key: MANUAL_REFRESH_COOLDOWN
+        value: "10"
+      - key: ENDFIELD_SERVER_CODE
+        value: "3"
+      - key: LOG_LEVEL
+        value: INFO
