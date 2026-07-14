@@ -743,7 +743,13 @@ function renderSelectedAccount() {
   renderTask("protocol", live.protocol_pass);
 
   $("#dataUpdatedAt").textContent =
-    formatDateWib(state.data?.updated_at, false);
+    formatDateWib(
+      account.live_updated_at ||
+      account.profile_updated_at ||
+      state.data?.checked_at ||
+      state.data?.updated_at,
+      true
+    );
 
   $("#selectedAccountStatus").textContent =
     profile.name || "—";
@@ -875,7 +881,7 @@ function applyDashboardState(dashboardState, source) {
   $("#cacheBadge").textContent =
     source === "manual"
       ? "SYNC • MANUAL"
-      : "SYNC • AUTOMATIC";
+      : `SYNC • ${Math.round(AUTO_SYNC_MS / 1000)}S`;
 
   renderAccountList();
   renderSelectedAccount();

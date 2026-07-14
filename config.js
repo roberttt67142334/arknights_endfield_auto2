@@ -10,7 +10,8 @@ window.ENDFIELD_CONFIG = Object.freeze({
     "https://script.google.com/macros/s/AKfycbxh7xI9jQoYHNc07LANgmje2FBAGFsFbgjC6HhDT73CoQrKWMGNS5kma9n8YbL8hQUtfA/exec",
 
   /*
-   * Browser memeriksa snapshot otomatis setiap 5 detik.
+   * Browser meminta profil, stamina, dan Activity Tasks terbaru
+   * setiap 5 detik ketika tab sedang terlihat.
    * Ini bukan menekan tombol Refresh secara otomatis.
    */
   autoSyncMs: 5000,
