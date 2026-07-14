@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import aiohttp
 from PIL import Image, ImageDraw, ImageOps
@@ -144,12 +145,30 @@ def create_generic_avatar() -> Image.Image:
     return image
 
 
+def add_cache_buster(url: str) -> str:
+    parts = urlsplit(url)
+    query = dict(parse_qsl(parts.query, keep_blank_values=True))
+    query["_endfield_refresh"] = str(int(datetime.now(timezone.utc).timestamp()))
+
+    return urlunsplit(
+        (
+            parts.scheme,
+            parts.netloc,
+            parts.path,
+            urlencode(query),
+            parts.fragment,
+        )
+    )
+
+
 async def download_image(
     session: aiohttp.ClientSession,
     url: str,
 ) -> Image.Image:
+    fresh_url = add_cache_buster(url)
+
     async with session.get(
-        url,
+        fresh_url,
         timeout=aiohttp.ClientTimeout(total=35),
         headers={
             "User-Agent":
@@ -203,6 +222,7 @@ async def generate_one(
 
     result: dict[str, Any] = {
         "uid": str(uid),
+        "checked_at": datetime.now(timezone.utc).isoformat(),
         "available": target.exists(),
         "source": None,
         "changed": False,
@@ -216,6 +236,13 @@ async def generate_one(
         # Preferred path:
         # endfield-cards exposes its endfield-py client as `ef`.
         # The PlayerProfile model includes `avatar_url`.
+        # endfield-py keeps Enka profile responses in memory for 300 seconds.
+        # Remove this account from the cache before asking for its profile.
+        try:
+            ef_card.ef.enka_data_cache.cache.pop(str(uid), None)
+        except Exception:
+            pass
+
         profile = await ef_card.ef.get_profile(uid)
         avatar_url = str(
             getattr(profile, "avatar_url", "") or ""
@@ -236,6 +263,7 @@ async def generate_one(
                 result.update({
                     "available": True,
                     "source": "avatar_url",
+                    "avatar_url": avatar_url,
                     "changed": changed,
                     "sha256": digest,
                     "error": None,
