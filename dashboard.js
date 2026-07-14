@@ -36,11 +36,6 @@ const FALLBACK_ACCOUNTS = [
   }
 ];
 
-const LOCAL_AVATARS = Object.freeze({
-  muzaka: "./assets/avatars/muzaka.png?v=1",
-  orion: "./assets/avatars/orion.png?v=1",
-  naskara: "./assets/avatars/naskara.png?v=1"
-});
 
 const state = {
   selectedSlug:
@@ -413,10 +408,7 @@ function renderAccountList() {
 function renderAvatar(profile, account) {
   const image = $("#profileAvatarImage");
   const fallback = $("#profileAvatarFallback");
-  const avatarUrl =
-    profile?.avatar_url ||
-    LOCAL_AVATARS[account.slug] ||
-    "";
+  const avatarUrl = profile?.avatar_url || "";
 
   const name =
     profile?.name ||
