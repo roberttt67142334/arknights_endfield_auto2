@@ -34,7 +34,10 @@ const state = {
   lastRevision: null,
   lastDataSignature: null,
   networkPulseTimer: null,
-  copyLabelTimer: null
+  copyLabelTimer: null,
+  avatarManifest: null,
+  avatarManifestVersion: null,
+  avatarManifestTimer: null
 };
 
 const $ = selector => document.querySelector(selector);
@@ -268,9 +271,11 @@ function setAuthorized(authorized) {
   if (authorized) {
     sessionStorage.setItem(SESSION_KEY, "1");
     startAutoSync();
+    startAvatarManifestSync();
   } else {
     sessionStorage.removeItem(SESSION_KEY);
     stopAutoSync();
+    stopAvatarManifestSync();
   }
 }
 
@@ -389,10 +394,98 @@ function renderAccountList() {
   });
 }
 
+async function loadAvatarManifest({
+  force = false
+} = {}) {
+  try {
+    const response = await fetch(
+      `./avatar-manifest.json?v=${Date.now()}`,
+      {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache"
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Avatar manifest HTTP ${response.status}`
+      );
+    }
+
+    const manifest = await response.json();
+    const nextVersion =
+      manifest?.generated_at ||
+      JSON.stringify(manifest?.accounts || {});
+
+    const changed =
+      state.avatarManifestVersion !== null &&
+      nextVersion !== state.avatarManifestVersion;
+
+    state.avatarManifest = manifest;
+    state.avatarManifestVersion = nextVersion;
+
+    if (changed || force) {
+      renderSelectedAccount();
+    }
+
+    return manifest;
+  } catch (error) {
+    console.warn(
+      "[AVATAR] Manifest belum tersedia:",
+      error
+    );
+
+    return null;
+  }
+}
+
+function getGeneratedAvatarUrl(slug) {
+  const account =
+    state.avatarManifest?.accounts?.[slug];
+
+  if (
+    !account ||
+    account.available !== true ||
+    !account.sha256
+  ) {
+    return "";
+  }
+
+  return (
+    `./assets/avatars/${encodeURIComponent(slug)}.png` +
+    `?v=${encodeURIComponent(account.sha256)}`
+  );
+}
+
+function startAvatarManifestSync() {
+  stopAvatarManifestSync();
+
+  state.avatarManifestTimer = setInterval(() => {
+    if (
+      document.visibilityState === "visible" &&
+      sessionStorage.getItem(SESSION_KEY) === "1"
+    ) {
+      loadAvatarManifest();
+    }
+  }, 60000);
+}
+
+function stopAvatarManifestSync() {
+  if (state.avatarManifestTimer !== null) {
+    clearInterval(state.avatarManifestTimer);
+    state.avatarManifestTimer = null;
+  }
+}
+
 function renderAvatar(profile, account) {
   const image = $("#profileAvatarImage");
   const fallback = $("#profileAvatarFallback");
-  const avatarUrl = profile?.avatar_url || "";
+  const avatarUrl =
+    profile?.avatar_url ||
+    getGeneratedAvatarUrl(account.slug) ||
+    "";
 
   if (!avatarUrl) {
     image.hidden = true;
@@ -775,6 +868,13 @@ async function syncState({
 
   try {
     const payload = await gasRequest(action);
+
+    if (manual) {
+      await loadAvatarManifest({
+        force: true
+      });
+    }
+
     const dashboardState =
       normalizeDashboardPayload(payload);
 
@@ -1174,6 +1274,8 @@ function bindCopyUidInteraction() {
 }
 
 async function initialize() {
+  await loadAvatarManifest();
+
   renderAccountList();
   renderSelectedAccount();
   bindCopyUidInteraction();
@@ -1201,6 +1303,8 @@ async function initialize() {
             action: "state",
             manual: false
           });
+
+          loadAvatarManifest();
         }
       }
     }
@@ -1208,7 +1312,10 @@ async function initialize() {
 
   window.addEventListener(
     "beforeunload",
-    stopAutoSync
+    () => {
+      stopAutoSync();
+      stopAvatarManifestSync();
+    }
   );
 }
 

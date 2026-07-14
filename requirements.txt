@@ -1,1 +1,6 @@
+# Latest source is used because avatar metadata is frequently updated.
 git+https://github.com/MR-LORD-REX/endfield.git@main
+git+https://github.com/MR-LORD-REX/endfield-cards.git@main
+
+aiohttp>=3.9
+Pillow>=12.2.0
