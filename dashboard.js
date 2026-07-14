@@ -3,8 +3,8 @@
 const CONFIG = window.ENDFIELD_CONFIG || {};
 const GAS_URL = String(CONFIG.gasUrl || "");
 const AUTO_SYNC_MS = Math.max(
-  15000,
-  Number(CONFIG.autoSyncMs || 30000)
+  1000,
+  Number(CONFIG.autoSyncMs || 5000)
 );
 const REQUEST_TIMEOUT_MS = Math.max(
   30000,

@@ -10,10 +10,10 @@ window.ENDFIELD_CONFIG = Object.freeze({
     "https://script.google.com/macros/s/AKfycbxh7xI9jQoYHNc07LANgmje2FBAGFsFbgjC6HhDT73CoQrKWMGNS5kma9n8YbL8hQUtfA/exec",
 
   /*
-   * Browser memeriksa snapshot setiap 30 detik.
+   * Browser memeriksa snapshot otomatis setiap 5 detik.
    * Ini bukan menekan tombol Refresh secara otomatis.
    */
-  autoSyncMs: 30000,
+  autoSyncMs: 5000,
 
   requestTimeoutMs: 90000,
 
