@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap"
         rel="stylesheet">
-  <link rel="stylesheet" href="./dashboard.css?v=20260714-gas1">
+  <link rel="stylesheet" href="./dashboard.css?v=20260714-gas2">
 </head>
 
 <body>
@@ -75,7 +75,7 @@
         </div>
 
         <div class="topbar-status">
-          <span class="online-dot"></span>
+          <span id="networkIndicator" class="online-dot"></span>
           <span>Global Network Online</span>
         </div>
       </header>
@@ -106,9 +106,7 @@
               <span>Refresh</span>
             </button>
 
-            <span id="toolbarInfo">
-              Auto-refresh data setiap 10 detik.
-            </span>
+            <span id="toolbarInfo" aria-hidden="true"></span>
           </div>
 
           <section class="overview-grid">
@@ -178,7 +176,12 @@
               </header>
 
               <div class="stamina-body">
-                <div class="feature-icon stamina-icon">ϟ</div>
+                <div class="feature-icon stamina-icon">
+                  <img
+                    src="https://endfield.wiki.gg/images/Sanity.png"
+                    alt="Sanity"
+                    referrerpolicy="no-referrer">
+                </div>
 
                 <div class="stamina-value-row">
                   <strong id="sanityCurrent">—</strong>
@@ -346,7 +349,7 @@
     </form>
   </div>
 
-  <script src="./config.js?v=20260714-gas1"></script>
-  <script src="./dashboard.js?v=20260714-gas1"></script>
+  <script src="./config.js?v=20260714-gas2"></script>
+  <script src="./dashboard.js?v=20260714-gas2"></script>
 </body>
 </html>
