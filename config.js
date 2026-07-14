@@ -7,7 +7,7 @@ window.ENDFIELD_CONFIG = Object.freeze({
    * cukup ganti nilai ini.
    */
   gasUrl:
-    "https://script.google.com/macros/s/AKfycbxh7xI9jQoYHNc07LANgmje2FBAGFsFbgjC6HhDT73CoQrKWMGNS5kma9n8YbL8hQUtfA/exec",
+    "https://script.google.com/macros/s/AKfycbxn6_yR0B6jCrX6FhuK7L4qA02FX4LkFK8I5NHvtsd9KbdKNIjn36DzZ6bNlmyC5uRbQg/exec",
 
   /*
    * Browser meminta profil, stamina, dan Activity Tasks terbaru
