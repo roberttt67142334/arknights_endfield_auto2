@@ -1,14 +1,14 @@
 "use strict";
 
-const WEB_APP_URL =
-  "https://script.google.com/macros/s/AKfycbwveP6XYC6ygqYXKqRQalQ-EEb3xJq-QCF09Ifk6RVbRdKABafKHcOZa5RgBcdcY7tl/exec";
-
-const PIN_SHA256 =
-  "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92";
+const CONFIG = window.ENDFIELD_CONFIG || {};
+const API_BASE = String(CONFIG.apiBase || "").replace(/\/+$/, "");
+const WEB_APP_URL = String(CONFIG.checkinUrl || "");
+const PIN_SHA256 = String(CONFIG.pinSha256 || "");
+const SSE_RECONNECT_DELAY_MS =
+  Number(CONFIG.sseReconnectDelayMs || 5000);
 
 const SESSION_KEY = "endfield_protocol_authorized";
 const SELECTED_ACCOUNT_KEY = "endfield_selected_account";
-const AUTO_REFRESH_MS = 10_000;
 
 const FALLBACK_ACCOUNTS = [
   {
@@ -38,12 +38,15 @@ const state = {
   data: null,
   refreshing: false,
   checkingIn: false,
-  refreshTimer: null,
-  countdownTimer: null
+  countdownTimer: null,
+  eventSource: null,
+  reconnectTimer: null,
+  connectionState: "offline"
 };
 
 const $ = selector => document.querySelector(selector);
-const $$ = selector => Array.from(document.querySelectorAll(selector));
+const $$ = selector =>
+  Array.from(document.querySelectorAll(selector));
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -54,13 +57,22 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+function apiConfigured() {
+  return (
+    API_BASE.startsWith("https://") &&
+    !API_BASE.includes("YOUR-END-FIELD-API")
+  );
+}
+
 function clampPercent(current, maximum) {
   const currentValue = Number(current);
   const maxValue = Number(maximum);
 
-  if (!Number.isFinite(currentValue) ||
-      !Number.isFinite(maxValue) ||
-      maxValue <= 0) {
+  if (
+    !Number.isFinite(currentValue) ||
+    !Number.isFinite(maxValue) ||
+    maxValue <= 0
+  ) {
     return 0;
   }
 
@@ -71,6 +83,7 @@ function clampPercent(current, maximum) {
 }
 
 function setProgress(element, current, maximum) {
+  if (!element) return;
   element.style.width =
     `${clampPercent(current, maximum)}%`;
 }
@@ -146,8 +159,10 @@ function setAuthorized(authorized) {
   if (authorized) {
     sessionStorage.setItem(SESSION_KEY, "1");
     resumeBackgroundVideo();
+    startRealtimeConnection();
   } else {
     sessionStorage.removeItem(SESSION_KEY);
+    stopRealtimeConnection();
   }
 }
 
@@ -197,7 +212,7 @@ $("#loginForm").addEventListener("submit", async event => {
       message: "Dashboard operator berhasil dibuka."
     });
 
-    await refreshDashboard({ manual: true });
+    await loadInitialState();
   } finally {
     button.disabled = false;
   }
@@ -235,7 +250,9 @@ function renderAccountList() {
             )}
           </span>
           <span class="account-mini-meta">
-            UID ${escapeHtml(account.uid || profile.uid || "—")}<br>
+            UID ${escapeHtml(
+              profile.uid || account.uid || "—"
+            )}<br>
             ${escapeHtml(account.server_name || "Asia")}
             • Lv.${escapeHtml(level)}
           </span>
@@ -296,9 +313,10 @@ function renderTask(prefix, task) {
   const maximum = Number(task?.max ?? 0);
 
   $(`#${prefix}Current`).textContent =
-    formatNumber(current, "0");
+    task ? formatNumber(current, "0") : "—";
+
   $(`#${prefix}Max`).textContent =
-    formatNumber(maximum, "0");
+    task ? formatNumber(maximum, "0") : "—";
 
   setProgress(
     $(`#${prefix}Progress`),
@@ -315,19 +333,20 @@ function clearCountdown() {
 }
 
 function formatDuration(milliseconds) {
-  if (!Number.isFinite(milliseconds) ||
-      milliseconds <= 0) {
+  if (
+    !Number.isFinite(milliseconds) ||
+    milliseconds <= 0
+  ) {
     return "00:00:00";
   }
 
   const totalSeconds =
     Math.max(0, Math.floor(milliseconds / 1000));
-  const hours =
-    Math.floor(totalSeconds / 3600);
+
+  const hours = Math.floor(totalSeconds / 3600);
   const minutes =
     Math.floor((totalSeconds % 3600) / 60);
-  const seconds =
-    totalSeconds % 60;
+  const seconds = totalSeconds % 60;
 
   return [
     String(hours).padStart(2, "0"),
@@ -339,15 +358,21 @@ function formatDuration(milliseconds) {
 function startSanityCountdown(sanity) {
   clearCountdown();
 
-  const current = Number(sanity?.current ?? 0);
-  const maximum = Number(sanity?.max ?? 0);
-  const recoverAt = sanity?.full_recover_at;
+  if (!sanity) {
+    $("#sanityRecoveryText").textContent =
+      "Live stamina data unavailable";
+    $("#sanityRecoveryTime").textContent = "—";
+    return;
+  }
+
+  const current = Number(sanity.current ?? 0);
+  const maximum = Number(sanity.max ?? 0);
+  const recoverAt = sanity.full_recover_at;
 
   if (maximum > 0 && current >= maximum) {
     $("#sanityRecoveryText").textContent =
       "Stamina is full";
-    $("#sanityRecoveryTime").textContent =
-      "FULL";
+    $("#sanityRecoveryTime").textContent = "FULL";
     return;
   }
 
@@ -373,7 +398,7 @@ function startSanityCountdown(sanity) {
 
     if (remaining <= 0) {
       $("#sanityRecoveryText").textContent =
-        "Stamina should be full • refresh data";
+        "Stamina should be full • waiting for game sync";
       $("#sanityRecoveryTime").textContent =
         "00:00:00";
       clearCountdown();
@@ -384,11 +409,13 @@ function startSanityCountdown(sanity) {
 
     $("#sanityRecoveryText").textContent =
       `${duration} until stamina is full`;
+
     $("#sanityRecoveryTime").textContent =
       duration;
   };
 
   update();
+
   state.countdownTimer =
     window.setInterval(update, 1000);
 }
@@ -416,7 +443,7 @@ function renderSelectedAccount() {
   const account = selectedAccount();
   const profile = account.profile || {};
   const live = account.live || {};
-  const sanity = live.sanity || {};
+  const sanity = live.sanity || null;
 
   renderAvatar(profile, account);
 
@@ -444,14 +471,16 @@ function renderSelectedAccount() {
     formatNumber(profile.exploration_level);
 
   const sanityCurrent =
-    Number(sanity.current ?? 0);
+    sanity ? Number(sanity.current ?? 0) : null;
+
   const sanityMax =
-    Number(sanity.max ?? 0);
+    sanity ? Number(sanity.max ?? 0) : null;
 
   $("#sanityCurrent").textContent =
-    formatNumber(sanityCurrent, "0");
+    sanity ? formatNumber(sanityCurrent, "0") : "—";
+
   $("#sanityMax").textContent =
-    formatNumber(sanityMax, "0");
+    sanity ? formatNumber(sanityMax, "0") : "—";
 
   setProgress(
     $("#sanityProgress"),
@@ -461,18 +490,9 @@ function renderSelectedAccount() {
 
   startSanityCountdown(sanity);
 
-  renderTask(
-    "daily",
-    live.daily_activity
-  );
-  renderTask(
-    "weekly",
-    live.weekly_routine
-  );
-  renderTask(
-    "protocol",
-    live.protocol_pass
-  );
+  renderTask("daily", live.daily_activity);
+  renderTask("weekly", live.weekly_routine);
+  renderTask("protocol", live.protocol_pass);
 
   $("#dataUpdatedAt").textContent =
     formatDateWib(state.data?.updated_at, false);
@@ -513,37 +533,193 @@ function renderSelectedAccount() {
   renderAccountList();
 }
 
-async function loadDashboardData() {
-  const cacheBuster =
-    `${Date.now()}-${Math.random()}`;
+function applyServerState(data, source = "server") {
+  if (
+    !data ||
+    typeof data !== "object" ||
+    !data.accounts
+  ) {
+    return;
+  }
 
-  const response = await fetch(
-    `./data/accounts.json?v=${cacheBuster}`,
-    {
-      cache: "no-store",
-      headers: {
-        "Cache-Control": "no-cache"
-      }
+  state.data = data;
+
+  $("#browserRefreshAt").textContent =
+    browserTimeWib();
+
+  $("#cacheBadge").textContent =
+    source === "sse"
+      ? "LIVE • SYNCED"
+      : "LIVE • LATEST";
+
+  renderAccountList();
+  renderSelectedAccount();
+}
+
+async function fetchJson(url, options = {}) {
+  const response = await fetch(url, {
+    cache: "no-store",
+    ...options,
+    headers: {
+      "Cache-Control": "no-cache",
+      ...(options.headers || {})
     }
-  );
+  });
+
+  let payload = null;
+
+  try {
+    payload = await response.json();
+  } catch (_) {
+    payload = null;
+  }
 
   if (!response.ok) {
-    throw new Error(
-      `Data dashboard gagal dimuat: HTTP ${response.status}`
-    );
+    const message =
+      payload?.detail ||
+      payload?.message ||
+      `HTTP ${response.status}`;
+
+    throw new Error(message);
   }
 
-  const data = await response.json();
+  return payload;
+}
 
-  if (!data ||
-      typeof data !== "object" ||
-      !data.accounts) {
-    throw new Error(
-      "Struktur data/accounts.json tidak valid."
-    );
+async function loadInitialState() {
+  if (!apiConfigured()) {
+    setConnectionState("config-error");
+
+    showToast({
+      type: "error",
+      title: "API belum diatur",
+      message:
+        "Buka config.js lalu ganti apiBase dengan URL backend Render.",
+      duration: 9000
+    });
+
+    return;
   }
 
-  return data;
+  try {
+    const data = await fetchJson(
+      `${API_BASE}/api/state`
+    );
+
+    applyServerState(data, "initial");
+  } catch (error) {
+    setConnectionState("offline");
+
+    showToast({
+      type: "error",
+      title: "Backend offline",
+      message:
+        error?.message ||
+        "Tidak dapat mengambil data awal.",
+      duration: 8000
+    });
+  }
+}
+
+function setConnectionState(connectionState) {
+  state.connectionState = connectionState;
+
+  const badge = $("#cacheBadge");
+
+  if (!badge) return;
+
+  switch (connectionState) {
+    case "connected":
+      badge.textContent = "LIVE • CONNECTED";
+      break;
+
+    case "connecting":
+      badge.textContent = "LIVE • CONNECTING";
+      break;
+
+    case "reconnecting":
+      badge.textContent = "LIVE • RECONNECTING";
+      break;
+
+    case "config-error":
+      badge.textContent = "API NOT CONFIGURED";
+      break;
+
+    default:
+      badge.textContent = "LIVE • OFFLINE";
+      break;
+  }
+}
+
+function stopRealtimeConnection() {
+  if (state.reconnectTimer !== null) {
+    clearTimeout(state.reconnectTimer);
+    state.reconnectTimer = null;
+  }
+
+  if (state.eventSource) {
+    state.eventSource.close();
+    state.eventSource = null;
+  }
+
+  setConnectionState("offline");
+}
+
+function scheduleReconnect() {
+  if (
+    state.reconnectTimer !== null ||
+    sessionStorage.getItem(SESSION_KEY) !== "1"
+  ) {
+    return;
+  }
+
+  state.reconnectTimer = window.setTimeout(() => {
+    state.reconnectTimer = null;
+    startRealtimeConnection();
+  }, SSE_RECONNECT_DELAY_MS);
+}
+
+function startRealtimeConnection() {
+  if (!apiConfigured()) {
+    setConnectionState("config-error");
+    return;
+  }
+
+  stopRealtimeConnection();
+  setConnectionState("connecting");
+
+  const events = new EventSource(
+    `${API_BASE}/api/events`
+  );
+
+  state.eventSource = events;
+
+  events.addEventListener("open", () => {
+    setConnectionState("connected");
+  });
+
+  events.addEventListener("state", event => {
+    try {
+      const data = JSON.parse(event.data);
+      applyServerState(data, "sse");
+      setConnectionState("connected");
+    } catch (error) {
+      console.error(
+        "[SSE] Data tidak valid:",
+        error
+      );
+    }
+  });
+
+  events.addEventListener("error", () => {
+    if (state.eventSource === events) {
+      events.close();
+      state.eventSource = null;
+    }
+
+    setConnectionState("reconnecting");
+    scheduleReconnect();
+  });
 }
 
 function setRefreshState(refreshing) {
@@ -557,53 +733,50 @@ function setRefreshState(refreshing) {
 
   $("#toolbarInfo").textContent =
     refreshing
-      ? "Mengambil data terbaru..."
-      : "Auto-refresh data setiap 10 detik.";
+      ? "Meminta pengecekan langsung ke game..."
+      : "Sinkron otomatis melalui koneksi live. Refresh tetap manual.";
 }
 
-async function refreshDashboard({
-  manual = false
-} = {}) {
+async function manualRefresh() {
   if (state.refreshing) return;
+
+  if (!apiConfigured()) {
+    showToast({
+      type: "error",
+      title: "API belum diatur",
+      message:
+        "Ganti apiBase di config.js terlebih dahulu."
+    });
+    return;
+  }
 
   state.refreshing = true;
   setRefreshState(true);
 
   try {
-    state.data = await loadDashboardData();
+    const data = await fetchJson(
+      `${API_BASE}/api/refresh`,
+      {
+        method: "POST"
+      }
+    );
 
-    $("#cacheBadge").textContent =
-      "Cached • latest";
+    applyServerState(data, "manual");
 
-    $("#browserRefreshAt").textContent =
-      browserTimeWib();
-
-    renderAccountList();
-    renderSelectedAccount();
-
-    if (manual) {
-      showToast({
-        type: "success",
-        title: "Dashboard refreshed",
-        message:
-          "Data profil, stamina, dan aktivitas terbaru berhasil dimuat."
-      });
-    }
+    showToast({
+      type: "success",
+      title: "Manual refresh selesai",
+      message:
+        "Backend sudah meminta data terbaru langsung dari game."
+    });
   } catch (error) {
-    console.error(error);
-
-    $("#cacheBadge").textContent =
-      "Data unavailable";
-
-    if (manual) {
-      showToast({
-        type: "error",
-        title: "Refresh failed",
-        message:
-          error?.message ||
-          "Tidak dapat memuat data dashboard."
-      });
-    }
+    showToast({
+      type: "error",
+      title: "Manual refresh gagal",
+      message:
+        error?.message ||
+        "Backend tidak dapat mengambil data game."
+    });
   } finally {
     state.refreshing = false;
     setRefreshState(false);
@@ -625,7 +798,7 @@ $("#mobileMenuButton").addEventListener(
 ].forEach(selector => {
   $(selector).addEventListener(
     "click",
-    () => refreshDashboard({ manual: true })
+    manualRefresh
   );
 });
 
@@ -648,8 +821,10 @@ function cleanStatusText(value) {
 }
 
 function summarizeCheckinResponse(response) {
-  if (!response?.success ||
-      !Array.isArray(response.data)) {
+  if (
+    !response?.success ||
+    !Array.isArray(response.data)
+  ) {
     return {
       type: "error",
       title: "Check-in failed",
@@ -662,10 +837,12 @@ function summarizeCheckinResponse(response) {
   const rows = response.data.map(item => {
     const name =
       item.accountName || "Unknown";
+
     const text =
       cleanStatusText(
         item.statusMsg || "Tidak ada status."
       );
+
     const isError =
       Boolean(item.isError);
 
@@ -762,10 +939,9 @@ async function runCheckin() {
       duration: 8000
     });
 
-    window.setTimeout(
-      () => refreshDashboard({ manual: false }),
-      1200
-    );
+    window.setTimeout(() => {
+      manualRefresh();
+    }, 1500);
   } catch (error) {
     showToast({
       type: "error",
@@ -860,31 +1036,15 @@ async function resumeBackgroundVideo() {
   try {
     await video.play();
   } catch (_) {
-    // Autoplay dapat diblokir sampai ada interaksi pengguna.
+    // Browser dapat menunda autoplay.
   }
-}
-
-function startAutoRefresh() {
-  if (state.refreshTimer !== null) {
-    clearInterval(state.refreshTimer);
-  }
-
-  state.refreshTimer =
-    window.setInterval(() => {
-      if (
-        document.visibilityState === "visible" &&
-        sessionStorage.getItem(SESSION_KEY) === "1"
-      ) {
-        refreshDashboard({ manual: false });
-      }
-    }, AUTO_REFRESH_MS);
 }
 
 async function initialize() {
   renderAccountList();
   renderSelectedAccount();
-  startAutoRefresh();
   resumeBackgroundVideo();
+  setRefreshState(false);
 
   const authorized =
     sessionStorage.getItem(SESSION_KEY) === "1";
@@ -892,7 +1052,7 @@ async function initialize() {
   setAuthorized(authorized);
 
   if (authorized) {
-    await refreshDashboard({ manual: false });
+    await loadInitialState();
   }
 
   document.addEventListener(
@@ -904,7 +1064,11 @@ async function initialize() {
         if (
           sessionStorage.getItem(SESSION_KEY) === "1"
         ) {
-          refreshDashboard({ manual: false });
+          if (!state.eventSource) {
+            startRealtimeConnection();
+          }
+
+          loadInitialState();
         }
       }
     }
@@ -913,6 +1077,11 @@ async function initialize() {
   window.addEventListener(
     "focus",
     resumeBackgroundVideo
+  );
+
+  window.addEventListener(
+    "beforeunload",
+    stopRealtimeConnection
   );
 }
 
