@@ -16,24 +16,9 @@ const SESSION_KEY = "endfield_protocol_authorized";
 const SELECTED_ACCOUNT_KEY = "endfield_selected_account";
 
 const FALLBACK_ACCOUNTS = [
-  {
-    slug: "muzaka",
-    display_name: "Muzaka",
-    uid: "4468761606",
-    server_name: "Asia"
-  },
-  {
-    slug: "orion",
-    display_name: "Orion",
-    uid: "4896434342",
-    server_name: "Asia"
-  },
-  {
-    slug: "naskara",
-    display_name: "Naskara",
-    uid: "4367542843",
-    server_name: "Asia"
-  }
+  { slug: "muzaka" },
+  { slug: "orion" },
+  { slug: "naskara" }
 ];
 
 
@@ -260,7 +245,8 @@ async function sha256Text(value) {
 function allAccountEntries() {
   const accounts = state.data?.accounts;
 
-  return FALLBACK_ACCOUNTS.map(fallback => ({
+  return FALLBACK_ACCOUNTS.map((fallback, index) => ({
+    slot_index: index + 1,
     ...fallback,
     ...(accounts?.[fallback.slug] || {})
   }));
@@ -370,18 +356,16 @@ function renderAccountList() {
           <span class="account-mini-name">
             ${escapeHtml(
               profile.name ||
-              account.display_name ||
-              account.slug
+              "—"
             )}
           </span>
           <span class="account-mini-meta">
             UID ${escapeHtml(
               profile.uid ||
-              account.uid ||
               "—"
             )}<br>
             ${escapeHtml(
-              account.server_name || "Asia"
+              account.server_name || "—"
             )}
             • Lv.${escapeHtml(level)}
           </span>
@@ -412,9 +396,7 @@ function renderAvatar(profile, account) {
 
   const name =
     profile?.name ||
-    account.display_name ||
-    account.slug ||
-    "?";
+    "—";
 
   fallback.textContent =
     name.slice(0, 1).toUpperCase();
@@ -579,18 +561,16 @@ function renderSelectedAccount() {
   renderAvatar(profile, account);
 
   $("#profileName").textContent =
-    profile.name ||
-    account.display_name ||
-    account.slug ||
-    "Unknown";
+    profile.name || "—";
 
   $("#profileLevelLabel").textContent =
     `Lv.${formatNumber(profile.level)}`;
 
   $("#profileUid").textContent =
-    profile.uid ||
-    account.uid ||
-    "—";
+    profile.uid || "—";
+
+  $("#profileServer").textContent =
+    account.server_name || "—";
 
   $("#operatorCount").textContent =
     formatNumber(profile.operator_count);
@@ -629,9 +609,7 @@ function renderSelectedAccount() {
     formatDateWib(state.data?.updated_at, false);
 
   $("#selectedAccountStatus").textContent =
-    account.display_name ||
-    profile.name ||
-    account.slug;
+    profile.name || "—";
 
   setSourceStatus(
     $("#profileSourceStatus"),
