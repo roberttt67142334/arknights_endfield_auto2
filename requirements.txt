@@ -1,0 +1,4 @@
+# Gunakan source terbaru karena rilis PyPI endfield-py 1.1.0
+# masih memiliki bug saat userAvatarId belum ada di metadata lokal.
+git+https://github.com/MR-LORD-REX/endfield.git@main
+git+https://github.com/MR-LORD-REX/endfield-cards.git@main
