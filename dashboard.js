@@ -50,6 +50,30 @@ const state = {
   notificationPanelOpen: false
 };
 
+const operationProgressState = {
+  refresh: {
+    timer: null,
+    startedAt: 0,
+    progress: 0
+  },
+  checkin: {
+    timer: null,
+    startedAt: 0,
+    progress: 0
+  }
+};
+
+const OPERATION_BUTTONS = {
+  refresh: [
+    "#refreshButton",
+    "#sidebarRefreshButton"
+  ],
+  checkin: [
+    "#checkinButton",
+    "#sidebarCheckinButton"
+  ]
+};
+
 const $ = selector => document.querySelector(selector);
 const $$ = selector =>
   Array.from(document.querySelectorAll(selector));
@@ -1636,6 +1660,295 @@ function applyDashboardState(dashboardState, source) {
   return changed;
 }
 
+function getOperationButtons(operationName) {
+  return (
+    OPERATION_BUTTONS[operationName] || []
+  )
+    .map(selector => $(selector))
+    .filter(Boolean);
+}
+
+function getButtonOperationLabel(button) {
+  const spans =
+    Array.from(
+      button.querySelectorAll("span")
+    );
+
+  return spans.length
+    ? spans[spans.length - 1]
+    : button;
+}
+
+function rememberOriginalButtonLabel(button) {
+  if (button.dataset.originalLabel) {
+    return;
+  }
+
+  const label =
+    getButtonOperationLabel(button);
+
+  button.dataset.originalLabel =
+    label.textContent.trim();
+}
+
+function setButtonOperationLabel(
+  button,
+  value
+) {
+  const label =
+    getButtonOperationLabel(button);
+
+  label.textContent = value;
+}
+
+function operationColorForProgress(progress) {
+  /*
+   * Perubahan warna:
+   * merah → magenta → biru → cyan → hijau.
+   */
+  const clamped =
+    Math.max(0, Math.min(100, progress));
+
+  const hue =
+    Math.round(
+      350 - clamped * 2.3
+    );
+
+  return `hsl(${hue} 94% 58%)`;
+}
+
+function paintOperationProgress(
+  operationName,
+  progress
+) {
+  const safeProgress =
+    Math.max(
+      0,
+      Math.min(100, progress)
+    );
+
+  const rounded =
+    Math.floor(safeProgress);
+
+  const color =
+    operationColorForProgress(
+      safeProgress
+    );
+
+  operationProgressState[
+    operationName
+  ].progress = safeProgress;
+
+  getOperationButtons(
+    operationName
+  ).forEach(button => {
+    rememberOriginalButtonLabel(button);
+
+    button.classList.add("is-loading");
+    button.classList.remove(
+      "is-success",
+      "is-error"
+    );
+
+    button.style.setProperty(
+      "--operation-progress",
+      `${safeProgress}%`
+    );
+
+    button.style.setProperty(
+      "--operation-color",
+      color
+    );
+
+    setButtonOperationLabel(
+      button,
+      `${rounded}%`
+    );
+  });
+}
+
+function startOperationProgress(
+  operationName
+) {
+  const operation =
+    operationProgressState[
+      operationName
+    ];
+
+  if (!operation) {
+    return;
+  }
+
+  if (operation.timer !== null) {
+    clearInterval(operation.timer);
+  }
+
+  operation.startedAt =
+    performance.now();
+
+  operation.progress = 0;
+
+  paintOperationProgress(
+    operationName,
+    0
+  );
+
+  operation.timer =
+    setInterval(() => {
+      const elapsed =
+        performance.now() -
+        operation.startedAt;
+
+      /*
+       * Progress diperkirakan karena Google Apps Script tidak
+       * mengirim streaming byte/progress. Nilai bergerak cepat
+       * di awal lalu menahan maksimal 94% sampai respons tiba.
+       */
+      const estimated =
+        Math.min(
+          94,
+          94 *
+          (
+            1 -
+            Math.exp(
+              -elapsed / 5200
+            )
+          )
+        );
+
+      const nextProgress =
+        Math.max(
+          operation.progress,
+          estimated
+        );
+
+      paintOperationProgress(
+        operationName,
+        nextProgress
+      );
+    }, 140);
+}
+
+function clearOperationTimer(
+  operationName
+) {
+  const operation =
+    operationProgressState[
+      operationName
+    ];
+
+  if (
+    operation &&
+    operation.timer !== null
+  ) {
+    clearInterval(operation.timer);
+    operation.timer = null;
+  }
+}
+
+function restoreOperationButtons(
+  operationName
+) {
+  clearOperationTimer(
+    operationName
+  );
+
+  getOperationButtons(
+    operationName
+  ).forEach(button => {
+    const originalLabel =
+      button.dataset.originalLabel || "";
+
+    button.classList.remove(
+      "is-loading",
+      "is-success",
+      "is-error"
+    );
+
+    button.style.removeProperty(
+      "--operation-progress"
+    );
+
+    button.style.removeProperty(
+      "--operation-color"
+    );
+
+    if (originalLabel) {
+      setButtonOperationLabel(
+        button,
+        originalLabel
+      );
+    }
+  });
+
+  operationProgressState[
+    operationName
+  ].progress = 0;
+}
+
+async function finishOperationProgress(
+  operationName,
+  successful
+) {
+  clearOperationTimer(
+    operationName
+  );
+
+  const statusClass =
+    successful
+      ? "is-success"
+      : "is-error";
+
+  const statusText =
+    successful
+      ? "Berhasil"
+      : "Gagal";
+
+  const statusColor =
+    successful
+      ? "#35e58b"
+      : "#ff3048";
+
+  getOperationButtons(
+    operationName
+  ).forEach(button => {
+    rememberOriginalButtonLabel(button);
+
+    button.classList.remove(
+      "is-loading",
+      "is-success",
+      "is-error"
+    );
+
+    button.classList.add(
+      statusClass
+    );
+
+    button.style.setProperty(
+      "--operation-progress",
+      "100%"
+    );
+
+    button.style.setProperty(
+      "--operation-color",
+      statusColor
+    );
+
+    setButtonOperationLabel(
+      button,
+      statusText
+    );
+  });
+
+  await new Promise(resolve => {
+    setTimeout(resolve, 3000);
+  });
+
+  restoreOperationButtons(
+    operationName
+  );
+}
+
 function setRefreshButtonsDisabled(disabled) {
   [
     "#refreshButton",
@@ -1648,10 +1961,6 @@ function setRefreshButtonsDisabled(disabled) {
     }
 
     button.disabled = disabled;
-    button.classList.toggle(
-      "is-loading",
-      disabled
-    );
     button.setAttribute(
       "aria-busy",
       String(disabled)
@@ -1668,9 +1977,11 @@ async function syncState({
   }
 
   state.requestInProgress = true;
+  let manualSuccessful = false;
 
   if (manual) {
     setRefreshButtonsDisabled(true);
+    startOperationProgress("refresh");
   }
 
   try {
@@ -1691,6 +2002,8 @@ async function syncState({
     );
 
     if (manual) {
+      manualSuccessful = true;
+
       showToast({
         type: "success",
         title: "Manual refresh selesai",
@@ -1715,11 +2028,16 @@ async function syncState({
       });
     }
   } finally {
-    state.requestInProgress = false;
-
     if (manual) {
+      await finishOperationProgress(
+        "refresh",
+        manualSuccessful
+      );
+
       setRefreshButtonsDisabled(false);
     }
+
+    state.requestInProgress = false;
   }
 }
 
@@ -1780,10 +2098,6 @@ function setCheckinState(disabled) {
     }
 
     button.disabled = disabled;
-    button.classList.toggle(
-      "is-loading",
-      disabled
-    );
     button.setAttribute(
       "aria-busy",
       String(disabled)
@@ -1883,7 +2197,10 @@ async function runCheckin() {
   if (state.checkingIn) return;
 
   state.checkingIn = true;
+  let checkinSuccessful = false;
+
   setCheckinState(true);
+  startOperationProgress("checkin");
 
   showToast({
     type: "info",
@@ -1897,6 +2214,9 @@ async function runCheckin() {
     const response = await gasRequest("run");
     const summary =
       summarizeCheckinResponse(response);
+
+    checkinSuccessful =
+      summary.type !== "error";
 
     showToast({
       type: summary.type,
@@ -1928,8 +2248,13 @@ async function runCheckin() {
       duration: 8000
     });
   } finally {
-    state.checkingIn = false;
+    await finishOperationProgress(
+      "checkin",
+      checkinSuccessful
+    );
+
     setCheckinState(false);
+    state.checkingIn = false;
   }
 }
 
