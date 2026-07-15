@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap"
         rel="stylesheet">
-  <link rel="stylesheet" href="./dashboard.css?v=20260716-notification13">
+  <link rel="stylesheet" href="./dashboard.css?v=20260716-notification14">
 </head>
 
 <body>
@@ -104,45 +104,6 @@
                 hidden>0</span>
             </button>
 
-            <section
-              id="notificationPanel"
-              class="notification-panel"
-              aria-label="Riwayat notifikasi"
-              hidden>
-              <div class="notification-panel-header">
-                <div>
-                  <span class="notification-kicker">SYSTEM ALERTS</span>
-                  <h2>Notifications</h2>
-                </div>
-
-                <button
-                  id="markAllNotificationsRead"
-                  class="notification-text-button"
-                  type="button">
-                  Tandai dibaca
-                </button>
-              </div>
-
-              <div
-                id="notificationList"
-                class="notification-list"></div>
-
-              <div class="notification-panel-footer">
-                <button
-                  id="enableDeviceNotifications"
-                  class="notification-footer-button"
-                  type="button">
-                  Aktifkan notifikasi perangkat
-                </button>
-
-                <button
-                  id="clearNotifications"
-                  class="notification-footer-button danger"
-                  type="button">
-                  Hapus riwayat
-                </button>
-              </div>
-            </section>
           </div>
         </div>
       </header>
@@ -152,8 +113,7 @@
           <section class="page-heading">
             <div class="page-title-row">
               <h1>Data Overview</h1>
-              <span class="badge">Global</span>
-              <span id="cacheBadge" class="badge cyan">Awaiting sync</span>
+              <span class="badge">Beta 1.0</span>
             </div>
             <p>Real-time operator account information</p>
           </section>
@@ -404,6 +364,48 @@
     </section>
   </div>
 
+
+  <!-- Root-level notification overlay -->
+  <section
+    id="notificationPanel"
+    class="notification-panel"
+    aria-label="Riwayat notifikasi"
+    hidden>
+    <div class="notification-panel-header">
+      <div>
+        <span class="notification-kicker">SYSTEM ALERTS</span>
+        <h2>Notifications</h2>
+      </div>
+
+      <button
+        id="markAllNotificationsRead"
+        class="notification-text-button"
+        type="button">
+        Tandai dibaca
+      </button>
+    </div>
+
+    <div
+      id="notificationList"
+      class="notification-list"></div>
+
+    <div class="notification-panel-footer">
+      <button
+        id="enableDeviceNotifications"
+        class="notification-footer-button"
+        type="button">
+        Aktifkan notifikasi perangkat
+      </button>
+
+      <button
+        id="clearNotifications"
+        class="notification-footer-button danger"
+        type="button">
+        Hapus riwayat
+      </button>
+    </div>
+  </section>
+
   <div id="toastRegion"
        class="toast-region"
        aria-live="polite"></div>
@@ -443,7 +445,7 @@
     </form>
   </div>
 
-  <script src="./config.js?v=20260716-notification13"></script>
-  <script src="./dashboard.js?v=20260716-notification13"></script>
+  <script src="./config.js?v=20260716-notification14"></script>
+  <script src="./dashboard.js?v=20260716-notification14"></script>
 </body>
 </html>

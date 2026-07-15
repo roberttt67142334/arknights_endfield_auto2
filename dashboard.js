@@ -493,19 +493,31 @@ function renderAvatar(profile, account) {
   const image = $("#profileAvatarImage");
   const fallback = $("#profileAvatarFallback");
 
-  /*
-   * Prioritas sumber avatar:
-   * 1. Avatar lokal hasil GitHub Actions + endfield-cards
-   * 2. avatar_url dari Google Apps Script/API
-   * 3. Ikon operator generik
-   *
-   * avatar_url dari API kadang berisi URL yang tidak dapat dimuat langsung
-   * oleh browser. Karena itu avatar lokal tidak boleh ditimpa begitu saja.
-   */
   const candidates = [
     getGeneratedAvatarUrl(account.slug),
     String(profile?.avatar_url || "").trim()
   ].filter(Boolean);
+
+  const candidatesKey =
+    candidates.join("|");
+
+  /*
+   * Bila kandidat avatar tidak berubah dan gambar sudah tampil,
+   * jangan reset src. Ini mencegah download/flicker setiap 5 detik.
+   */
+  if (
+    candidatesKey &&
+    image.dataset.avatarCandidates === candidatesKey &&
+    !image.hidden &&
+    image.complete &&
+    image.naturalWidth > 0
+  ) {
+    fallback.hidden = true;
+    return;
+  }
+
+  image.dataset.avatarCandidates =
+    candidatesKey;
 
   let candidateIndex = 0;
 
@@ -524,6 +536,7 @@ function renderAvatar(profile, account) {
       return;
     }
 
+    const sourceIndex = candidateIndex;
     const nextUrl = candidates[candidateIndex];
     candidateIndex += 1;
 
@@ -532,32 +545,19 @@ function renderAvatar(profile, account) {
       image.hidden = false;
       image.setAttribute(
         "data-avatar-source",
-        candidateIndex === 1
+        sourceIndex === 0
           ? "endfield-cards"
           : "game-api"
       );
     };
 
     image.onerror = () => {
-      /*
-       * Jangan langsung sembunyikan gambar permanen.
-       * Coba sumber berikutnya terlebih dahulu.
-       */
       tryNextCandidate();
     };
 
     image.hidden = true;
     fallback.hidden = false;
-
-    /*
-     * Reset src terlebih dahulu agar browser menjalankan load/error
-     * lagi ketika URL atau hash avatar berubah.
-     */
-    image.removeAttribute("src");
-
-    requestAnimationFrame(() => {
-      image.src = nextUrl;
-    });
+    image.src = nextUrl;
   };
 
   if (candidates.length === 0) {
@@ -792,7 +792,6 @@ function renderSelectedAccount() {
     errorsElement.textContent = "";
   }
 
-  renderAccountList();
 }
 
 function readJsonStorage(key, fallback) {
@@ -1154,6 +1153,11 @@ function toggleNotificationPanel(forceOpen) {
 
   panel.hidden =
     !nextOpen;
+
+  document.body.classList.toggle(
+    "notification-open",
+    nextOpen
+  );
 
   button.setAttribute(
     "aria-expanded",
@@ -1551,12 +1555,51 @@ function pulseNetworkUpdate() {
   }, 4200);
 }
 
+function renderSelectedAccountSyncMeta() {
+  const account = selectedAccount();
+  const profile = account.profile || {};
+
+  $("#browserRefreshAt").textContent =
+    browserTimeWib();
+
+  $("#dataUpdatedAt").textContent =
+    formatDateWib(
+      account.live_updated_at ||
+      account.profile_updated_at ||
+      state.data?.checked_at ||
+      state.data?.updated_at,
+      true
+    );
+
+  $("#selectedAccountStatus").textContent =
+    profile.name || "—";
+
+  setSourceStatus(
+    $("#profileSourceStatus"),
+    Boolean(account.profile_available),
+    Boolean(account.profile_stale)
+  );
+
+  setSourceStatus(
+    $("#liveSourceStatus"),
+    Boolean(account.live_available),
+    Boolean(account.live_stale)
+  );
+}
+
 function applyDashboardState(dashboardState, source) {
   const nextSignature =
     createDataSignature(dashboardState);
 
   const previousSignature =
     state.lastDataSignature;
+
+  const firstLoad =
+    previousSignature === null;
+
+  const changed =
+    !firstLoad &&
+    nextSignature !== previousSignature;
 
   state.data = dashboardState;
   state.lastRevision =
@@ -1567,28 +1610,24 @@ function applyDashboardState(dashboardState, source) {
   state.lastDataSignature =
     nextSignature;
 
-  $("#browserRefreshAt").textContent =
-    browserTimeWib();
-
-  $("#cacheBadge").textContent =
+  /*
+   * Full render hanya saat pertama load, data berubah, atau refresh manual.
+   * Sinkronisasi 5 detik yang nilainya sama cukup memperbarui metadata.
+   */
+  if (
+    firstLoad ||
+    changed ||
     source === "manual"
-      ? "SYNC • MANUAL"
-      : `SYNC • ${Math.round(AUTO_SYNC_MS / 1000)}S`;
+  ) {
+    renderAccountList();
+    renderSelectedAccount();
+  } else {
+    renderSelectedAccountSyncMeta();
+  }
 
-  renderAccountList();
-  renderSelectedAccount();
   evaluateGameNotifications(
     dashboardState
   );
-
-  /*
-   * Avatar lokal tetap dirender ulang setelah data profil GAS masuk,
-   * tetapi tidak lagi kalah prioritas dari avatar_url API yang rusak.
-   */
-
-  const changed =
-    previousSignature !== null &&
-    nextSignature !== previousSignature;
 
   if (changed) {
     pulseNetworkUpdate();
@@ -1603,9 +1642,20 @@ function setRefreshButtonsDisabled(disabled) {
     "#sidebarRefreshButton"
   ].forEach(selector => {
     const button = $(selector);
-    if (button) {
-      button.disabled = disabled;
+
+    if (!button) {
+      return;
     }
+
+    button.disabled = disabled;
+    button.classList.toggle(
+      "is-loading",
+      disabled
+    );
+    button.setAttribute(
+      "aria-busy",
+      String(disabled)
+    );
   });
 }
 
@@ -1724,7 +1774,20 @@ function setCheckinState(disabled) {
     "#sidebarCheckinButton"
   ].forEach(selector => {
     const button = $(selector);
-    if (button) button.disabled = disabled;
+
+    if (!button) {
+      return;
+    }
+
+    button.disabled = disabled;
+    button.classList.toggle(
+      "is-loading",
+      disabled
+    );
+    button.setAttribute(
+      "aria-busy",
+      String(disabled)
+    );
   });
 }
 
