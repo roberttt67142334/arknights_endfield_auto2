@@ -933,47 +933,192 @@ body::before {
 .nav-button {
   position: relative;
   overflow: hidden;
+  isolation: isolate;
 }
 
 .action-button.is-loading,
 .nav-button.is-loading {
   cursor: wait;
+  opacity: 1;
+  border-color: rgba(255, 43, 63, 0.68);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 43, 63, 0.08),
+    0 0 18px rgba(255, 43, 63, 0.09);
 }
 
+/*
+ * ENDFIELD PROTOCOL SCAN
+ * Lapisan pertama adalah cahaya pemindai diagonal.
+ */
+.action-button.is-loading::before,
+.nav-button.is-loading::before {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  bottom: 0;
+  left: -65%;
+  width: 54%;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      112deg,
+      transparent 0%,
+      rgba(255, 43, 63, 0.015) 22%,
+      rgba(255, 43, 63, 0.12) 43%,
+      rgba(255, 123, 134, 0.24) 50%,
+      rgba(255, 43, 63, 0.08) 58%,
+      transparent 78%
+    );
+  transform: skewX(-14deg);
+  animation:
+    endfield-protocol-scan
+    1.45s
+    cubic-bezier(0.42, 0, 0.58, 1)
+    infinite;
+}
+
+/*
+ * Rel segmentasi di bawah tombol.
+ * Gerak diagonal memberi kesan transfer data/protocol processing.
+ */
 .action-button.is-loading::after,
 .nav-button.is-loading::after {
   content: "";
   position: absolute;
-  z-index: 5;
-  left: -44%;
-  bottom: 0;
-  width: 44%;
-  height: 3px;
+  z-index: 6;
+  right: 7px;
+  bottom: 3px;
+  left: 7px;
+  height: 4px;
+  pointer-events: none;
   background:
     linear-gradient(
       90deg,
-      transparent,
-      var(--yellow) 25%,
-      #ff7b86 72%,
-      transparent
+      transparent 0%,
+      rgba(255, 43, 63, 0.9) 12%,
+      #ff8791 48%,
+      rgba(255, 43, 63, 0.95) 88%,
+      transparent 100%
+    ),
+    repeating-linear-gradient(
+      120deg,
+      rgba(255, 255, 255, 0.92) 0 5px,
+      rgba(255, 43, 63, 0.98) 5px 11px,
+      rgba(80, 6, 16, 0.88) 11px 16px
     );
-  box-shadow: 0 0 10px rgba(255, 43, 63, 0.65);
-  animation: action-button-progress 0.95s linear infinite;
-  pointer-events: none;
+  background-size:
+    190% 100%,
+    31px 100%;
+  background-position:
+    120% 0,
+    0 0;
+  clip-path:
+    polygon(
+      0 50%,
+      5px 0,
+      calc(100% - 5px) 0,
+      100% 50%,
+      calc(100% - 5px) 100%,
+      5px 100%
+    );
+  box-shadow:
+    0 0 5px rgba(255, 43, 63, 0.72),
+    0 0 14px rgba(255, 43, 63, 0.25);
+  animation:
+    endfield-protocol-rail
+    0.82s
+    linear
+    infinite;
 }
 
+/* Isi tombol tetap terbaca dan hanya berdenyut tipis. */
 .action-button.is-loading > *,
 .nav-button.is-loading > * {
-  opacity: 0.72;
+  position: relative;
+  z-index: 4;
+  opacity: 0.78;
+  animation:
+    endfield-loading-content
+    1.15s
+    ease-in-out
+    infinite;
 }
 
-@keyframes action-button-progress {
-  from {
-    transform: translateX(0);
+.action-button.is-loading:disabled,
+.nav-button.is-loading:disabled {
+  opacity: 1;
+}
+
+/* Icon utama memperoleh sinyal kecil seperti terminal processing. */
+.action-button.is-loading .button-svg-icon,
+.nav-button.is-loading .nav-icon {
+  color: currentColor;
+  filter:
+    drop-shadow(
+      0 0 5px
+      rgba(255, 43, 63, 0.52)
+    );
+}
+
+@keyframes endfield-protocol-scan {
+  0% {
+    transform:
+      translateX(0)
+      skewX(-14deg);
+    opacity: 0;
   }
 
-  to {
-    transform: translateX(330%);
+  15% {
+    opacity: 1;
+  }
+
+  72% {
+    opacity: 1;
+  }
+
+  100% {
+    transform:
+      translateX(315%)
+      skewX(-14deg);
+    opacity: 0;
+  }
+}
+
+@keyframes endfield-protocol-rail {
+  0% {
+    background-position:
+      130% 0,
+      0 0;
+  }
+
+  100% {
+    background-position:
+      -130% 0,
+      31px 0;
+  }
+}
+
+@keyframes endfield-loading-content {
+  0%,
+  100% {
+    opacity: 0.67;
+  }
+
+  50% {
+    opacity: 0.92;
+  }
+}
+
+/* Menghormati pengaturan aksesibilitas sistem. */
+@media (prefers-reduced-motion: reduce) {
+  .action-button.is-loading::before,
+  .nav-button.is-loading::before,
+  .action-button.is-loading::after,
+  .nav-button.is-loading::after,
+  .action-button.is-loading > *,
+  .nav-button.is-loading > * {
+    animation-duration: 2.4s;
   }
 }
 
