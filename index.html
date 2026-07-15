@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap"
         rel="stylesheet">
-  <link rel="stylesheet" href="./dashboard.css?v=20260714-live11">
+  <link rel="stylesheet" href="./dashboard.css?v=20260716-notification13">
 </head>
 
 <body>
@@ -80,9 +80,70 @@
           <span>Control Panel / Dashboard</span>
         </div>
 
-        <div class="topbar-status">
-          <span id="networkIndicator" class="online-dot"></span>
-          <span>Global Network Online</span>
+        <div class="topbar-actions">
+          <div class="topbar-status">
+            <span id="networkIndicator" class="online-dot"></span>
+            <span>Global Network Online</span>
+          </div>
+
+          <div class="notification-center">
+            <button
+              id="notificationButton"
+              class="notification-button"
+              type="button"
+              aria-label="Buka pusat notifikasi"
+              aria-expanded="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"></path>
+                <path d="M10 21h4"></path>
+              </svg>
+
+              <span
+                id="notificationBadge"
+                class="notification-badge"
+                hidden>0</span>
+            </button>
+
+            <section
+              id="notificationPanel"
+              class="notification-panel"
+              aria-label="Riwayat notifikasi"
+              hidden>
+              <div class="notification-panel-header">
+                <div>
+                  <span class="notification-kicker">SYSTEM ALERTS</span>
+                  <h2>Notifications</h2>
+                </div>
+
+                <button
+                  id="markAllNotificationsRead"
+                  class="notification-text-button"
+                  type="button">
+                  Tandai dibaca
+                </button>
+              </div>
+
+              <div
+                id="notificationList"
+                class="notification-list"></div>
+
+              <div class="notification-panel-footer">
+                <button
+                  id="enableDeviceNotifications"
+                  class="notification-footer-button"
+                  type="button">
+                  Aktifkan notifikasi perangkat
+                </button>
+
+                <button
+                  id="clearNotifications"
+                  class="notification-footer-button danger"
+                  type="button">
+                  Hapus riwayat
+                </button>
+              </div>
+            </section>
+          </div>
         </div>
       </header>
 
@@ -382,7 +443,7 @@
     </form>
   </div>
 
-  <script src="./config.js?v=20260714-live11"></script>
-  <script src="./dashboard.js?v=20260714-live11"></script>
+  <script src="./config.js?v=20260716-notification13"></script>
+  <script src="./dashboard.js?v=20260716-notification13"></script>
 </body>
 </html>

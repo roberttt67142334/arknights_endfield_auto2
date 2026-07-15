@@ -14,6 +14,13 @@ const PIN_SHA256 = String(CONFIG.pinSha256 || "");
 
 const SESSION_KEY = "endfield_protocol_authorized";
 const SELECTED_ACCOUNT_KEY = "endfield_selected_account";
+const NOTIFICATION_STORAGE_KEY =
+  "endfield_notification_history_v1";
+const NOTIFICATION_CONDITION_KEY =
+  "endfield_notification_conditions_v1";
+const MAX_NOTIFICATION_HISTORY = 60;
+const DEVICE_NOTIFICATION_ICON =
+  "https://raw.githubusercontent.com/Yue-plus/endfield_icons/main/svg/endfield-industries.svg";
 
 const FALLBACK_ACCOUNTS = [
   { slug: "muzaka" },
@@ -37,7 +44,10 @@ const state = {
   copyLabelTimer: null,
   avatarManifest: null,
   avatarManifestVersion: null,
-  avatarManifestTimer: null
+  avatarManifestTimer: null,
+  notifications: [],
+  notificationConditions: {},
+  notificationPanelOpen: false
 };
 
 const $ = selector => document.querySelector(selector);
@@ -469,7 +479,7 @@ function startAvatarManifestSync() {
     ) {
       loadAvatarManifest();
     }
-  }, 60000);
+  }, 30000);
 }
 
 function stopAvatarManifestSync() {
@@ -785,6 +795,688 @@ function renderSelectedAccount() {
   renderAccountList();
 }
 
+function readJsonStorage(key, fallback) {
+  try {
+    const value = localStorage.getItem(key);
+
+    if (!value) {
+      return fallback;
+    }
+
+    return JSON.parse(value);
+  } catch (error) {
+    console.warn(
+      `[STORAGE] Gagal membaca ${key}:`,
+      error
+    );
+
+    return fallback;
+  }
+}
+
+function loadNotificationStorage() {
+  const storedNotifications =
+    readJsonStorage(
+      NOTIFICATION_STORAGE_KEY,
+      []
+    );
+
+  const storedConditions =
+    readJsonStorage(
+      NOTIFICATION_CONDITION_KEY,
+      {}
+    );
+
+  state.notifications =
+    Array.isArray(storedNotifications)
+      ? storedNotifications
+          .filter(item =>
+            item &&
+            typeof item === "object" &&
+            item.id
+          )
+          .slice(0, MAX_NOTIFICATION_HISTORY)
+      : [];
+
+  state.notificationConditions =
+    storedConditions &&
+    typeof storedConditions === "object"
+      ? storedConditions
+      : {};
+}
+
+function saveNotificationStorage() {
+  try {
+    localStorage.setItem(
+      NOTIFICATION_STORAGE_KEY,
+      JSON.stringify(
+        state.notifications.slice(
+          0,
+          MAX_NOTIFICATION_HISTORY
+        )
+      )
+    );
+
+    localStorage.setItem(
+      NOTIFICATION_CONDITION_KEY,
+      JSON.stringify(
+        state.notificationConditions
+      )
+    );
+  } catch (error) {
+    console.warn(
+      "[STORAGE] Gagal menyimpan notifikasi:",
+      error
+    );
+  }
+}
+
+function getWibDateKey(date = new Date()) {
+  const parts =
+    new Intl.DateTimeFormat(
+      "en-CA",
+      {
+        timeZone: "Asia/Jakarta",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }
+    ).formatToParts(date);
+
+  const values =
+    Object.fromEntries(
+      parts.map(part => [
+        part.type,
+        part.value
+      ])
+    );
+
+  return (
+    `${values.year}-` +
+    `${values.month}-` +
+    `${values.day}`
+  );
+}
+
+function getNotificationIconSvg(type) {
+  if (type === "energy") {
+    return `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="m13 2-8 12h6l-1 8 9-13h-6l0-7Z"></path>
+      </svg>
+    `;
+  }
+
+  return `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5 3h14v18H5z"></path>
+      <path d="M8 7h8M8 11h8M8 15h4"></path>
+      <path d="m14.5 16.5 1.5 1.5 3-3"></path>
+    </svg>
+  `;
+}
+
+function formatNotificationTime(value) {
+  if (!value) {
+    return "—";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  return date.toLocaleString(
+    "id-ID",
+    {
+      timeZone: "Asia/Jakarta",
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit"
+    }
+  ) + " WIB";
+}
+
+function unreadNotificationCount() {
+  return state.notifications.filter(
+    notification => !notification.read
+  ).length;
+}
+
+function updateDeviceNotificationButton() {
+  const button =
+    $("#enableDeviceNotifications");
+
+  if (!button) {
+    return;
+  }
+
+  if (!("Notification" in window)) {
+    button.textContent =
+      "Notifikasi perangkat tidak didukung";
+    button.disabled = true;
+    return;
+  }
+
+  if (Notification.permission === "granted") {
+    button.textContent =
+      "Notifikasi perangkat aktif";
+    button.disabled = true;
+    return;
+  }
+
+  if (Notification.permission === "denied") {
+    button.textContent =
+      "Notifikasi perangkat diblokir";
+    button.disabled = true;
+    return;
+  }
+
+  button.textContent =
+    "Aktifkan notifikasi perangkat";
+  button.disabled = false;
+}
+
+function renderNotificationCenter() {
+  const badge =
+    $("#notificationBadge");
+
+  const list =
+    $("#notificationList");
+
+  if (!badge || !list) {
+    return;
+  }
+
+  const unreadCount =
+    unreadNotificationCount();
+
+  badge.hidden =
+    unreadCount === 0;
+
+  badge.textContent =
+    unreadCount > 99
+      ? "99+"
+      : String(unreadCount);
+
+  if (state.notifications.length === 0) {
+    list.innerHTML = `
+      <div class="notification-empty">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"></path>
+          <path d="M10 21h4"></path>
+        </svg>
+        <strong>Belum ada notifikasi</strong>
+        <span>
+          Peringatan energi penuh dan Activity Point 0/100
+          akan muncul di sini.
+        </span>
+      </div>
+    `;
+
+    updateDeviceNotificationButton();
+    return;
+  }
+
+  list.innerHTML =
+    state.notifications.map(notification => `
+      <button
+        class="notification-item ${
+          escapeHtml(notification.type)
+        } ${
+          notification.read
+            ? "read"
+            : "unread"
+        }"
+        type="button"
+        data-notification-id="${
+          escapeHtml(notification.id)
+        }">
+        <span class="notification-item-icon">
+          ${getNotificationIconSvg(
+            notification.type
+          )}
+        </span>
+
+        <span class="notification-item-copy">
+          <span class="notification-item-title">
+            ${escapeHtml(notification.title)}
+          </span>
+
+          <span class="notification-item-message">
+            ${escapeHtml(notification.message)}
+          </span>
+
+          <span class="notification-item-time">
+            ${escapeHtml(
+              formatNotificationTime(
+                notification.createdAt
+              )
+            )}
+          </span>
+        </span>
+      </button>
+    `).join("");
+
+  list
+    .querySelectorAll(
+      "[data-notification-id]"
+    )
+    .forEach(button => {
+      button.addEventListener(
+        "click",
+        () => {
+          markNotificationRead(
+            button.dataset.notificationId
+          );
+        }
+      );
+    });
+
+  updateDeviceNotificationButton();
+}
+
+function markNotificationRead(id) {
+  let changed = false;
+
+  state.notifications =
+    state.notifications.map(notification => {
+      if (
+        notification.id === id &&
+        !notification.read
+      ) {
+        changed = true;
+
+        return {
+          ...notification,
+          read: true
+        };
+      }
+
+      return notification;
+    });
+
+  if (changed) {
+    saveNotificationStorage();
+    renderNotificationCenter();
+  }
+}
+
+function markAllNotificationsRead() {
+  let changed = false;
+
+  state.notifications =
+    state.notifications.map(notification => {
+      if (!notification.read) {
+        changed = true;
+
+        return {
+          ...notification,
+          read: true
+        };
+      }
+
+      return notification;
+    });
+
+  if (changed) {
+    saveNotificationStorage();
+    renderNotificationCenter();
+  }
+}
+
+function clearNotificationHistory() {
+  state.notifications = [];
+  saveNotificationStorage();
+  renderNotificationCenter();
+}
+
+function toggleNotificationPanel(forceOpen) {
+  const panel =
+    $("#notificationPanel");
+
+  const button =
+    $("#notificationButton");
+
+  if (!panel || !button) {
+    return;
+  }
+
+  const nextOpen =
+    typeof forceOpen === "boolean"
+      ? forceOpen
+      : !state.notificationPanelOpen;
+
+  state.notificationPanelOpen =
+    nextOpen;
+
+  panel.hidden =
+    !nextOpen;
+
+  button.setAttribute(
+    "aria-expanded",
+    String(nextOpen)
+  );
+}
+
+async function requestDeviceNotifications() {
+  if (!("Notification" in window)) {
+    return;
+  }
+
+  try {
+    const permission =
+      await Notification.requestPermission();
+
+    updateDeviceNotificationButton();
+
+    if (permission === "granted") {
+      showToast({
+        type: "success",
+        title: "Notifikasi perangkat aktif",
+        message:
+          "Peringatan Endfield dapat muncul sebagai notifikasi browser.",
+        duration: 3600
+      });
+    } else {
+      showToast({
+        type: "warning",
+        title: "Izin tidak diberikan",
+        message:
+          "Notifikasi tetap tersimpan di ikon lonceng dashboard.",
+        duration: 4200
+      });
+    }
+  } catch (error) {
+    console.warn(
+      "[NOTIFICATION] Permission error:",
+      error
+    );
+  }
+}
+
+function showDeviceNotification(
+  title,
+  message,
+  tag
+) {
+  if (
+    !("Notification" in window) ||
+    Notification.permission !== "granted"
+  ) {
+    return;
+  }
+
+  try {
+    const notification =
+      new Notification(
+        title,
+        {
+          body: message,
+          icon: DEVICE_NOTIFICATION_ICON,
+          badge: DEVICE_NOTIFICATION_ICON,
+          tag: tag,
+          renotify: false
+        }
+      );
+
+    notification.onclick = () => {
+      window.focus();
+      toggleNotificationPanel(true);
+      notification.close();
+    };
+  } catch (error) {
+    console.warn(
+      "[NOTIFICATION] Browser notification gagal:",
+      error
+    );
+  }
+}
+
+function addGameNotification({
+  type,
+  accountSlug,
+  title,
+  message,
+  toastType = "warning"
+}) {
+  const notification = {
+    id:
+      `${Date.now()}-` +
+      `${Math.random().toString(36).slice(2)}`,
+    type,
+    accountSlug,
+    title,
+    message,
+    createdAt:
+      new Date().toISOString(),
+    read: false
+  };
+
+  state.notifications = [
+    notification,
+    ...state.notifications
+  ].slice(0, MAX_NOTIFICATION_HISTORY);
+
+  saveNotificationStorage();
+  renderNotificationCenter();
+
+  showToast({
+    type: toastType,
+    title,
+    message,
+    duration: 6500
+  });
+
+  showDeviceNotification(
+    title,
+    message,
+    `${type}-${accountSlug}`
+  );
+}
+
+function cleanupOldActivityConditions(todayKey) {
+  Object.keys(
+    state.notificationConditions
+  ).forEach(key => {
+    if (
+      key.startsWith("activity-zero:") &&
+      !key.endsWith(`:${todayKey}`)
+    ) {
+      delete state.notificationConditions[key];
+    }
+  });
+}
+
+function evaluateGameNotifications(
+  dashboardState
+) {
+  const accounts =
+    dashboardState?.accounts;
+
+  if (
+    !accounts ||
+    typeof accounts !== "object"
+  ) {
+    return;
+  }
+
+  const todayKey =
+    getWibDateKey();
+
+  cleanupOldActivityConditions(
+    todayKey
+  );
+
+  FALLBACK_ACCOUNTS.forEach(fallback => {
+    const account =
+      accounts[fallback.slug];
+
+    const profile =
+      account?.profile;
+
+    const live =
+      account?.live;
+
+    if (!profile || !live) {
+      return;
+    }
+
+    const accountName =
+      String(
+        profile.name ||
+        account.display_name ||
+        fallback.slug
+      );
+
+    const sanityCurrent =
+      Number(live.sanity?.current);
+
+    const sanityMax =
+      Number(live.sanity?.max);
+
+    const energyFull =
+      Number.isFinite(sanityCurrent) &&
+      Number.isFinite(sanityMax) &&
+      sanityMax > 0 &&
+      sanityCurrent >= sanityMax;
+
+    const energyConditionKey =
+      `energy-full:${fallback.slug}`;
+
+    const energyWasFull =
+      state.notificationConditions[
+        energyConditionKey
+      ] === true;
+
+    if (
+      energyFull &&
+      !energyWasFull
+    ) {
+      addGameNotification({
+        type: "energy",
+        accountSlug: fallback.slug,
+        title: "Energi sudah penuh",
+        message:
+          `${accountName}: energi telah penuh ` +
+          `(${sanityCurrent}/${sanityMax}).`,
+        toastType: "success"
+      });
+    }
+
+    /*
+     * Kondisi di-reset ketika energi dipakai.
+     * Siklus penuh berikutnya dapat membuat notifikasi baru.
+     */
+    state.notificationConditions[
+      energyConditionKey
+    ] = energyFull;
+
+    const activityCurrent =
+      Number(
+        live.daily_activity?.current
+      );
+
+    const activityMax =
+      Number(
+        live.daily_activity?.max
+      );
+
+    const activityIsZero =
+      Number.isFinite(activityCurrent) &&
+      Number.isFinite(activityMax) &&
+      activityCurrent === 0 &&
+      activityMax === 100;
+
+    const activityConditionKey =
+      `activity-zero:` +
+      `${fallback.slug}:` +
+      `${todayKey}`;
+
+    if (
+      activityIsZero &&
+      state.notificationConditions[
+        activityConditionKey
+      ] !== true
+    ) {
+      addGameNotification({
+        type: "activity",
+        accountSlug: fallback.slug,
+        title: "Activity Point masih 0/100",
+        message:
+          `${accountName}: aktivitas harian belum dikerjakan.`,
+        toastType: "warning"
+      });
+
+      state.notificationConditions[
+        activityConditionKey
+      ] = true;
+    }
+  });
+
+  saveNotificationStorage();
+}
+
+function bindNotificationCenter() {
+  $("#notificationButton")
+    .addEventListener(
+      "click",
+      event => {
+        event.stopPropagation();
+        toggleNotificationPanel();
+      }
+    );
+
+  $("#notificationPanel")
+    .addEventListener(
+      "click",
+      event => {
+        event.stopPropagation();
+      }
+    );
+
+  $("#markAllNotificationsRead")
+    .addEventListener(
+      "click",
+      markAllNotificationsRead
+    );
+
+  $("#clearNotifications")
+    .addEventListener(
+      "click",
+      clearNotificationHistory
+    );
+
+  $("#enableDeviceNotifications")
+    .addEventListener(
+      "click",
+      requestDeviceNotifications
+    );
+
+  document.addEventListener(
+    "click",
+    () => {
+      if (state.notificationPanelOpen) {
+        toggleNotificationPanel(false);
+      }
+    }
+  );
+
+  document.addEventListener(
+    "keydown",
+    event => {
+      if (
+        event.key === "Escape" &&
+        state.notificationPanelOpen
+      ) {
+        toggleNotificationPanel(false);
+      }
+    }
+  );
+}
+
 function createDataSignature(dashboardState) {
   const accounts = dashboardState?.accounts || {};
 
@@ -885,6 +1577,9 @@ function applyDashboardState(dashboardState, source) {
 
   renderAccountList();
   renderSelectedAccount();
+  evaluateGameNotifications(
+    dashboardState
+  );
 
   /*
    * Avatar lokal tetap dirender ulang setelah data profil GAS masuk,
@@ -1336,6 +2031,10 @@ function bindCopyUidInteraction() {
 }
 
 async function initialize() {
+  loadNotificationStorage();
+  bindNotificationCenter();
+  renderNotificationCenter();
+
   await loadAvatarManifest();
 
   renderAccountList();
