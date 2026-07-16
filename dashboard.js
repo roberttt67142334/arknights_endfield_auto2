@@ -723,6 +723,106 @@ function setSourceStatus(element, ok, stale = false) {
   element.classList.add("status-error");
 }
 
+function updateSanityGauge(
+  current,
+  maximum
+) {
+  const gauge =
+    $("#sanityGauge");
+
+  const arc =
+    $("#sanityGaugeArc");
+
+  const percentElement =
+    $("#sanityPercent");
+
+  const caption =
+    $("#sanityGaugeCaption");
+
+  if (
+    !gauge ||
+    !arc ||
+    !percentElement ||
+    !caption
+  ) {
+    return;
+  }
+
+  const valid =
+    Number.isFinite(current) &&
+    Number.isFinite(maximum) &&
+    maximum > 0;
+
+  if (!valid) {
+    arc.style.strokeDasharray =
+      "0 100";
+
+    percentElement.textContent =
+      "—%";
+
+    caption.textContent =
+      "Waiting for live energy data";
+
+    gauge.setAttribute(
+      "aria-valuenow",
+      "0"
+    );
+
+    gauge.classList.remove(
+      "is-full",
+      "is-low"
+    );
+
+    return;
+  }
+
+  const percent =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        (current / maximum) * 100
+      )
+    );
+
+  /*
+   * The visible radial arc is 300° of a full circle:
+   * 300 / 360 = 83.333% path length.
+   */
+  const visibleArcLength =
+    83.333;
+
+  const progressArc =
+    visibleArcLength *
+    (percent / 100);
+
+  arc.style.strokeDasharray =
+    `${progressArc.toFixed(3)} 100`;
+
+  percentElement.textContent =
+    `${Math.round(percent)}%`;
+
+  caption.textContent =
+    current >= maximum
+      ? "Energy fully restored"
+      : `${Math.round(percent)}% energy available`;
+
+  gauge.setAttribute(
+    "aria-valuenow",
+    String(Math.round(percent))
+  );
+
+  gauge.classList.toggle(
+    "is-full",
+    current >= maximum
+  );
+
+  gauge.classList.toggle(
+    "is-low",
+    percent <= 20
+  );
+}
+
 function renderSelectedAccount() {
   const account = selectedAccount();
   const profile = account.profile || {};
@@ -764,8 +864,7 @@ function renderSelectedAccount() {
   $("#sanityMax").textContent =
     sanity ? formatNumber(sanityMax, "0") : "—";
 
-  setProgress(
-    $("#sanityProgress"),
+  updateSanityGauge(
     sanityCurrent,
     sanityMax
   );
