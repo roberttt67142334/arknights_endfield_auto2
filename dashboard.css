@@ -2326,3 +2326,458 @@ body::before {
     transition-duration: 0.08s;
   }
 }
+
+
+/* ==========================================================
+   V18 — RESPONSIVE SANITY CHARGE + TASK ENERGY METERS
+   ========================================================== */
+
+/* Radial size remains balanced in narrow and wide panels. */
+.stamina-body {
+  min-height: 260px;
+  padding: 12px clamp(14px, 4vw, 20px) 16px;
+}
+
+.sanity-radial {
+  width: clamp(174px, 49%, 218px);
+  max-width: 100%;
+  margin: -7px auto -2px;
+}
+
+.sanity-radial-track,
+.sanity-radial-progress {
+  stroke-width: 15;
+}
+
+.sanity-radial-center {
+  gap: 3px;
+  padding-top: 5px;
+}
+
+.sanity-radial-center strong {
+  font-size: clamp(27px, 2.1vw, 31px);
+}
+
+.sanity-radial-center > span:last-child {
+  font-size: 8px;
+  letter-spacing: 1.25px;
+}
+
+.sanity-radial-icon {
+  width: 25px;
+  height: 25px;
+}
+
+.sanity-radial-icon img {
+  width: 17px;
+  height: 17px;
+}
+
+/*
+ * A bright pulse travels over the 300° path, giving the impression
+ * that energy is continuously charging into the segmented gauge.
+ */
+.sanity-radial-charge {
+  stroke: #fff4f5;
+  stroke-width: 6;
+  stroke-linecap: round;
+  opacity: 0;
+  filter:
+    drop-shadow(0 0 4px #ffffff)
+    drop-shadow(0 0 9px rgba(255, 43, 63, 0.9));
+  animation:
+    sanity-charge-orbit
+    1.65s
+    linear
+    infinite;
+  transition: opacity 0.25s ease;
+}
+
+.sanity-radial.has-data .sanity-radial-charge {
+  opacity: 0.88;
+}
+
+.sanity-radial.is-full .sanity-radial-charge {
+  stroke: #d8ffe9;
+  filter:
+    drop-shadow(0 0 4px #ffffff)
+    drop-shadow(0 0 9px rgba(53, 229, 139, 0.9));
+  animation-duration: 2.2s;
+}
+
+@keyframes sanity-charge-orbit {
+  from {
+    stroke-dashoffset: 105;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.sanity-radial-caption {
+  margin: -10px 0 11px;
+  min-height: 16px;
+  font-size: 8px;
+  letter-spacing: 0.35px;
+}
+
+.sanity-summary {
+  gap: 7px;
+}
+
+.sanity-summary-item {
+  min-height: 58px;
+  padding: 9px 10px;
+}
+
+.sanity-last-update {
+  margin-top: 8px;
+}
+
+/* The redundant "until stamina is full" line has been removed. */
+.stamina-recovery {
+  display: none !important;
+}
+
+/* ----------------------------------------------------------
+   ACTIVITY TASKS — segmented energy rails
+   ---------------------------------------------------------- */
+
+.activity-body {
+  min-height: 260px;
+  padding: 15px clamp(14px, 3vw, 18px) 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 11px;
+}
+
+.activity-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  margin-bottom: 1px;
+  border: 1px solid rgba(255, 43, 63, 0.26);
+  background: rgba(255, 43, 63, 0.07);
+}
+
+.task-block {
+  --task-color: #ff2b3f;
+  --task-color-soft: rgba(255, 43, 63, 0.13);
+  position: relative;
+  margin-top: 0;
+  padding: 11px 12px 12px;
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+  background:
+    linear-gradient(
+      112deg,
+      var(--task-color-soft),
+      rgba(13, 15, 18, 0.94) 44%,
+      #0c0e11 100%
+    );
+}
+
+.task-block::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  background: var(--task-color);
+  box-shadow:
+    0 0 10px
+    color-mix(
+      in srgb,
+      var(--task-color) 55%,
+      transparent
+    );
+}
+
+.task-weekly {
+  --task-color: #00c7dd;
+  --task-color-soft: rgba(0, 199, 221, 0.1);
+}
+
+.task-protocol {
+  --task-color: #d9dde4;
+  --task-color-soft: rgba(217, 221, 228, 0.075);
+}
+
+.task-heading {
+  margin-bottom: 9px;
+  gap: 10px;
+}
+
+.task-heading > span {
+  color: #a7adb4;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.35px;
+}
+
+.task-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.task-fraction {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.task-percent {
+  min-width: 38px;
+  padding: 3px 5px;
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--task-color) 42%,
+      #30343a
+    );
+  background:
+    color-mix(
+      in srgb,
+      var(--task-color) 8%,
+      #0c0e11
+    );
+  color: var(--task-color);
+  font-size: 7px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.35px;
+  text-align: center;
+}
+
+.task-meter {
+  height: 12px;
+  padding: 2px;
+  overflow: hidden;
+  border: 1px solid #34383e;
+  background:
+    repeating-linear-gradient(
+      110deg,
+      #292d32 0 7px,
+      #16191d 7px 11px
+    );
+  clip-path:
+    polygon(
+      0 0,
+      calc(100% - 5px) 0,
+      100% 50%,
+      calc(100% - 5px) 100%,
+      0 100%
+    );
+}
+
+.task-meter::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 17px,
+      rgba(7, 9, 12, 0.68) 17px 19px
+    );
+}
+
+.task-meter .progress-fill {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
+  overflow: hidden;
+  clip-path:
+    polygon(
+      0 0,
+      calc(100% - 4px) 0,
+      100% 50%,
+      calc(100% - 4px) 100%,
+      0 100%
+    );
+  background-size: 220% 100%;
+  transition:
+    width 0.5s
+    cubic-bezier(0.22, 1, 0.36, 1);
+  animation:
+    task-energy-flow
+    2.25s
+    linear
+    infinite;
+}
+
+.task-meter .progress-fill::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -32px;
+  width: 30px;
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.78),
+      transparent
+    );
+  transform: skewX(-16deg);
+  animation:
+    task-meter-scan
+    1.8s
+    ease-in-out
+    infinite;
+}
+
+.daily-fill {
+  background:
+    linear-gradient(
+      90deg,
+      #8f0719,
+      #ff2b3f 52%,
+      #ff7a87
+    );
+}
+
+.weekly-fill {
+  background:
+    linear-gradient(
+      90deg,
+      #006e7d,
+      #00c7dd 54%,
+      #74efff
+    );
+}
+
+.protocol-fill {
+  background:
+    linear-gradient(
+      90deg,
+      #727982,
+      #d9dde4 56%,
+      #ffffff
+    );
+}
+
+.task-meter.is-complete {
+  border-color: rgba(53, 229, 139, 0.5);
+}
+
+.task-meter.is-complete .progress-fill {
+  background:
+    linear-gradient(
+      90deg,
+      #0f8a4b,
+      #35e58b 58%,
+      #a9ffd0
+    );
+}
+
+.task-meter.is-empty .progress-fill {
+  opacity: 0;
+}
+
+.task-meter.is-empty {
+  border-color: rgba(255, 48, 72, 0.38);
+}
+
+@keyframes task-energy-flow {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -20% 0;
+  }
+}
+
+@keyframes task-meter-scan {
+  0% {
+    transform:
+      translateX(0)
+      skewX(-16deg);
+    opacity: 0;
+  }
+
+  18% {
+    opacity: 0.9;
+  }
+
+  78% {
+    opacity: 0.9;
+  }
+
+  100% {
+    transform:
+      translateX(520px)
+      skewX(-16deg);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 1180px) {
+  .sanity-radial {
+    width: clamp(176px, 54%, 208px);
+  }
+}
+
+@media (max-width: 820px) {
+  .sanity-radial {
+    width: clamp(184px, 58vw, 218px);
+  }
+
+  .sanity-radial-center strong {
+    font-size: 30px;
+  }
+
+  .activity-body {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 430px) {
+  .stamina-body {
+    padding-inline: 13px;
+  }
+
+  .sanity-radial {
+    width: clamp(178px, 59vw, 204px);
+  }
+
+  .sanity-summary-item {
+    padding-inline: 8px;
+  }
+
+  .activity-body {
+    padding-inline: 12px;
+  }
+
+  .task-block {
+    padding-inline: 10px;
+  }
+
+  .task-heading > span {
+    font-size: 8px;
+  }
+
+  .task-heading strong {
+    font-size: 15px;
+  }
+
+  .task-percent {
+    min-width: 35px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sanity-radial-charge,
+  .task-meter .progress-fill,
+  .task-meter .progress-fill::after {
+    animation-duration: 4s;
+  }
+}

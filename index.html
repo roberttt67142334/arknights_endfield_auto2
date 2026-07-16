@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap"
         rel="stylesheet">
-  <link rel="stylesheet" href="./dashboard.css?v=20260716-sanity17">
+  <link rel="stylesheet" href="./dashboard.css?v=20260716-meters18">
 </head>
 
 <body>
@@ -295,6 +295,16 @@
                       transform="rotate(120 110 110)"
                       mask="url(#sanitySegmentMask)">
                     </circle>
+
+                    <path
+                      id="sanityGaugeCharge"
+                      class="sanity-radial-charge"
+                      d="M 69 181.014 A 82 82 0 1 1 151 181.014"
+                      fill="none"
+                      pathLength="100"
+                      stroke-dasharray="5 95"
+                      mask="url(#sanitySegmentMask)">
+                    </path>
                   </svg>
 
                   <div class="sanity-radial-center">
@@ -333,12 +343,6 @@
                   </div>
                 </div>
 
-                <p
-                  id="sanityRecoveryText"
-                  class="stamina-recovery">
-                  Loading stamina data...
-                </p>
-
                 <div class="sanity-last-update">
                   <span>Last data update</span>
                   <strong id="dataUpdatedAt">—</strong>
@@ -364,46 +368,79 @@
                     referrerpolicy="no-referrer">
                 </div>
 
-                <div class="task-block">
+                <div class="task-block task-daily">
                   <div class="task-heading">
                     <span>Activity Points</span>
-                    <strong>
-                      <b id="dailyCurrent">—</b>
-                      <small>/</small>
-                      <small id="dailyMax">—</small>
+                    <strong class="task-value">
+                      <span class="task-fraction">
+                        <b id="dailyCurrent">—</b>
+                        <small>/</small>
+                        <small id="dailyMax">—</small>
+                      </span>
+                      <em id="dailyPercent"
+                          class="task-percent">—%</em>
                     </strong>
                   </div>
-                  <div class="progress-track">
+
+                  <div id="dailyMeter"
+                       class="progress-track task-meter daily-meter"
+                       role="progressbar"
+                       aria-label="Activity Points"
+                       aria-valuemin="0"
+                       aria-valuemax="100"
+                       aria-valuenow="0">
                     <div id="dailyProgress"
                          class="progress-fill daily-fill"></div>
                   </div>
                 </div>
 
-                <div class="task-block">
+                <div class="task-block task-weekly">
                   <div class="task-heading">
                     <span>Weekly Routine</span>
-                    <strong>
-                      <b id="weeklyCurrent">—</b>
-                      <small>/</small>
-                      <small id="weeklyMax">—</small>
+                    <strong class="task-value">
+                      <span class="task-fraction">
+                        <b id="weeklyCurrent">—</b>
+                        <small>/</small>
+                        <small id="weeklyMax">—</small>
+                      </span>
+                      <em id="weeklyPercent"
+                          class="task-percent">—%</em>
                     </strong>
                   </div>
-                  <div class="progress-track">
+
+                  <div id="weeklyMeter"
+                       class="progress-track task-meter weekly-meter"
+                       role="progressbar"
+                       aria-label="Weekly Routine"
+                       aria-valuemin="0"
+                       aria-valuemax="100"
+                       aria-valuenow="0">
                     <div id="weeklyProgress"
                          class="progress-fill weekly-fill"></div>
                   </div>
                 </div>
 
-                <div class="task-block">
+                <div class="task-block task-protocol">
                   <div class="task-heading">
                     <span>Protocol Pass</span>
-                    <strong>
-                      <b id="protocolCurrent">—</b>
-                      <small>/</small>
-                      <small id="protocolMax">—</small>
+                    <strong class="task-value">
+                      <span class="task-fraction">
+                        <b id="protocolCurrent">—</b>
+                        <small>/</small>
+                        <small id="protocolMax">—</small>
+                      </span>
+                      <em id="protocolPercent"
+                          class="task-percent">—%</em>
                     </strong>
                   </div>
-                  <div class="progress-track">
+
+                  <div id="protocolMeter"
+                       class="progress-track task-meter protocol-meter"
+                       role="progressbar"
+                       aria-label="Protocol Pass"
+                       aria-valuemin="0"
+                       aria-valuemax="100"
+                       aria-valuenow="0">
                     <div id="protocolProgress"
                          class="progress-fill protocol-fill"></div>
                   </div>
@@ -530,7 +567,7 @@
     </form>
   </div>
 
-  <script src="./config.js?v=20260716-sanity17"></script>
-  <script src="./dashboard.js?v=20260716-sanity17"></script>
+  <script src="./config.js?v=20260716-meters18"></script>
+  <script src="./dashboard.js?v=20260716-meters18"></script>
 </body>
 </html>

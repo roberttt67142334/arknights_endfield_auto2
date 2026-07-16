@@ -593,20 +593,88 @@ function renderAvatar(profile, account) {
 }
 
 function renderTask(prefix, task) {
-  const current = Number(task?.current ?? 0);
-  const maximum = Number(task?.max ?? 0);
+  const hasTask =
+    Boolean(task);
+
+  const current =
+    Number(task?.current ?? 0);
+
+  const maximum =
+    Number(task?.max ?? 0);
+
+  const valid =
+    hasTask &&
+    Number.isFinite(current) &&
+    Number.isFinite(maximum) &&
+    maximum > 0;
+
+  const percent =
+    valid
+      ? Math.max(
+          0,
+          Math.min(
+            100,
+            (current / maximum) * 100
+          )
+        )
+      : 0;
 
   $(`#${prefix}Current`).textContent =
-    task ? formatNumber(current, "0") : "—";
+    hasTask
+      ? formatNumber(current, "0")
+      : "—";
 
   $(`#${prefix}Max`).textContent =
-    task ? formatNumber(maximum, "0") : "—";
+    hasTask
+      ? formatNumber(maximum, "0")
+      : "—";
+
+  const percentElement =
+    $(`#${prefix}Percent`);
+
+  if (percentElement) {
+    percentElement.textContent =
+      valid
+        ? `${Math.round(percent)}%`
+        : "—%";
+  }
 
   setProgress(
     $(`#${prefix}Progress`),
     current,
     maximum
   );
+
+  const meter =
+    $(`#${prefix}Meter`);
+
+  if (meter) {
+    meter.setAttribute(
+      "aria-valuemax",
+      valid
+        ? String(maximum)
+        : "100"
+    );
+
+    meter.setAttribute(
+      "aria-valuenow",
+      valid
+        ? String(current)
+        : "0"
+    );
+
+    meter.classList.toggle(
+      "is-complete",
+      valid &&
+      current >= maximum
+    );
+
+    meter.classList.toggle(
+      "is-empty",
+      valid &&
+      current <= 0
+    );
+  }
 }
 
 function clearCountdown() {
@@ -642,60 +710,69 @@ function formatDuration(milliseconds) {
 function startSanityCountdown(sanity) {
   clearCountdown();
 
-  if (!sanity) {
-    $("#sanityRecoveryText").textContent =
-      "Live stamina data unavailable";
-    $("#sanityRecoveryTime").textContent = "—";
+  const recoveryElement =
+    $("#sanityRecoveryTime");
+
+  if (!recoveryElement) {
     return;
   }
 
-  const current = Number(sanity.current ?? 0);
-  const maximum = Number(sanity.max ?? 0);
-  const recoverAt = sanity.full_recover_at;
+  if (!sanity) {
+    recoveryElement.textContent = "—";
+    return;
+  }
 
-  if (maximum > 0 && current >= maximum) {
-    $("#sanityRecoveryText").textContent =
-      "Stamina is full";
-    $("#sanityRecoveryTime").textContent = "FULL";
+  const current =
+    Number(sanity.current ?? 0);
+
+  const maximum =
+    Number(sanity.max ?? 0);
+
+  const recoverAt =
+    sanity.full_recover_at;
+
+  if (
+    maximum > 0 &&
+    current >= maximum
+  ) {
+    recoveryElement.textContent =
+      "FULL";
     return;
   }
 
   if (!recoverAt) {
-    $("#sanityRecoveryText").textContent =
-      "Full recovery time unavailable";
-    $("#sanityRecoveryTime").textContent = "—";
+    recoveryElement.textContent =
+      "—";
     return;
   }
 
-  const recoverDate = new Date(recoverAt);
+  const recoverDate =
+    new Date(recoverAt);
 
-  if (Number.isNaN(recoverDate.getTime())) {
-    $("#sanityRecoveryText").textContent =
-      "Full recovery time unavailable";
-    $("#sanityRecoveryTime").textContent = "—";
+  if (
+    Number.isNaN(
+      recoverDate.getTime()
+    )
+  ) {
+    recoveryElement.textContent =
+      "—";
     return;
   }
 
   const update = () => {
     const remaining =
-      recoverDate.getTime() - Date.now();
+      recoverDate.getTime() -
+      Date.now();
 
     if (remaining <= 0) {
-      $("#sanityRecoveryText").textContent =
-        "Stamina should be full • waiting for next sync";
-      $("#sanityRecoveryTime").textContent =
+      recoveryElement.textContent =
         "00:00:00";
       clearCountdown();
       return;
     }
 
-    const duration = formatDuration(remaining);
-
-    $("#sanityRecoveryText").textContent =
-      `${duration} until stamina is full`;
-
-    $("#sanityRecoveryTime").textContent =
-      duration;
+    recoveryElement.textContent =
+      formatDuration(remaining);
   };
 
   update();
@@ -769,6 +846,7 @@ function updateSanityGauge(
     );
 
     gauge.classList.remove(
+      "has-data",
       "is-full",
       "is-low"
     );
@@ -810,6 +888,10 @@ function updateSanityGauge(
   gauge.setAttribute(
     "aria-valuenow",
     String(Math.round(percent))
+  );
+
+  gauge.classList.add(
+    "has-data"
   );
 
   gauge.classList.toggle(
