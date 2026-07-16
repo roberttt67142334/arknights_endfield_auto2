@@ -2781,3 +2781,151 @@ body::before {
     animation-duration: 4s;
   }
 }
+
+
+/* ==========================================================
+   V19 — STABLE, GPU-FRIENDLY METER ANIMATIONS
+   ========================================================== */
+
+/*
+ * Sanity pulse uses a path length of 100. Animating exactly 100 → 0
+ * makes the loop seamless; the previous 105 → 0 produced a visible jump.
+ */
+.sanity-radial-charge {
+  stroke-dasharray: 4 96;
+  animation:
+    sanity-charge-orbit-smooth
+    2.35s
+    linear
+    infinite;
+  will-change: stroke-dashoffset;
+  filter:
+    drop-shadow(
+      0 0 4px
+      rgba(255, 255, 255, 0.72)
+    )
+    drop-shadow(
+      0 0 6px
+      rgba(255, 43, 63, 0.5)
+    );
+}
+
+.sanity-radial.is-full .sanity-radial-charge {
+  animation-duration: 2.8s;
+}
+
+@keyframes sanity-charge-orbit-smooth {
+  from {
+    stroke-dashoffset: 100;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/*
+ * Keep the task fill itself static. Only a lightweight transform-based
+ * highlight moves across it, so updating the width does not restart
+ * a background-position animation.
+ */
+.task-meter .progress-fill {
+  animation: none;
+  background-position: 0 0;
+  contain: paint;
+}
+
+.task-meter .progress-fill::after {
+  top: 0;
+  bottom: 0;
+  left: -45%;
+  width: 45%;
+  opacity: 0;
+  transform:
+    translate3d(0, 0, 0)
+    skewX(-16deg);
+  will-change:
+    transform,
+    opacity;
+  animation:
+    task-meter-scan-smooth
+    3.2s
+    ease-in-out
+    infinite;
+}
+
+.task-weekly
+.task-meter
+.progress-fill::after {
+  animation-delay: -1.05s;
+}
+
+.task-protocol
+.task-meter
+.progress-fill::after {
+  animation-delay: -2.1s;
+}
+
+@keyframes task-meter-scan-smooth {
+  0% {
+    opacity: 0;
+    transform:
+      translate3d(0, 0, 0)
+      skewX(-16deg);
+  }
+
+  14% {
+    opacity: 0.7;
+  }
+
+  66% {
+    opacity: 0.7;
+  }
+
+  82%,
+  100% {
+    opacity: 0;
+    transform:
+      translate3d(330%, 0, 0)
+      skewX(-16deg);
+  }
+}
+
+/*
+ * A subtle pulse on the leading edge makes the meters feel active
+ * without repainting the entire bar continuously.
+ */
+.task-meter .progress-fill {
+  box-shadow:
+    4px 0 9px
+    color-mix(
+      in srgb,
+      var(--task-color) 30%,
+      transparent
+    );
+}
+
+/* Reduce constant GPU effects on small/mobile devices. */
+@media (max-width: 820px) {
+  .sanity-radial-charge {
+    filter:
+      drop-shadow(
+        0 0 4px
+        rgba(255, 43, 63, 0.45)
+      );
+  }
+
+  .task-meter .progress-fill::after {
+    animation-duration: 3.8s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sanity-radial-charge {
+    animation-duration: 5s;
+  }
+
+  .task-meter .progress-fill::after {
+    animation-duration: 6s;
+  }
+}

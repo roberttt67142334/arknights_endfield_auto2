@@ -227,9 +227,22 @@ function clampPercent(current, maximum) {
 }
 
 function setProgress(element, current, maximum) {
-  if (!element) return;
-  element.style.width =
-    `${clampPercent(current, maximum)}%`;
+  if (!element) {
+    return;
+  }
+
+  const nextWidth =
+    `${clampPercent(
+      current,
+      maximum
+    ).toFixed(3)}%`;
+
+  if (
+    element.style.width !== nextWidth
+  ) {
+    element.style.width =
+      nextWidth;
+  }
 }
 
 function formatNumber(value, fallback = "—") {
@@ -874,16 +887,40 @@ function updateSanityGauge(
     visibleArcLength *
     (percent / 100);
 
-  arc.style.strokeDasharray =
+  const nextArc =
     `${progressArc.toFixed(3)} 100`;
 
-  percentElement.textContent =
+  const nextPercent =
     `${Math.round(percent)}%`;
 
-  caption.textContent =
+  const nextCaption =
     current >= maximum
       ? "Energy fully restored"
       : `${Math.round(percent)}% energy available`;
+
+  if (
+    arc.style.strokeDasharray !==
+    nextArc
+  ) {
+    arc.style.strokeDasharray =
+      nextArc;
+  }
+
+  if (
+    percentElement.textContent !==
+    nextPercent
+  ) {
+    percentElement.textContent =
+      nextPercent;
+  }
+
+  if (
+    caption.textContent !==
+    nextCaption
+  ) {
+    caption.textContent =
+      nextCaption;
+  }
 
   gauge.setAttribute(
     "aria-valuenow",
@@ -1718,9 +1755,7 @@ function createDataSignature(dashboardState) {
       live: {
         sanity: {
           current: sanity.current ?? null,
-          max: sanity.max ?? null,
-          full_recover_at:
-            sanity.full_recover_at ?? null
+          max: sanity.max ?? null
         },
         daily_activity: {
           current: daily.current ?? null,
@@ -1821,12 +1856,15 @@ function applyDashboardState(dashboardState, source) {
    */
   if (
     firstLoad ||
-    changed ||
-    source === "manual"
+    changed
   ) {
     renderAccountList();
     renderSelectedAccount();
   } else {
+    /*
+     * Snapshot tetap diperiksa setiap 5 detik, tetapi panel visual
+     * tidak disentuh bila nilai game belum berubah.
+     */
     renderSelectedAccountSyncMeta();
   }
 
